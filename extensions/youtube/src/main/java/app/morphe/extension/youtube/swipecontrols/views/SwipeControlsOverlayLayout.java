@@ -64,9 +64,8 @@ public final class SwipeControlsOverlayLayout extends RelativeLayout implements 
     private final Drawable normalVolumeIcon;
     private final Drawable fullVolumeIcon;
     private final Drawable speedIcon;
-    private final Drawable seekIcon;
-    private final Drawable forwardIcon;
-    private final Drawable rewindIcon;
+
+    private final TextView seekFeedbackView;
 
     private final TextView seekFeedbackView;
 
@@ -94,9 +93,6 @@ public final class SwipeControlsOverlayLayout extends RelativeLayout implements 
         normalVolumeIcon = getDrawable("morphe_ic_sc_volume_normal");
         fullVolumeIcon = getDrawable("morphe_ic_sc_volume_high");
         speedIcon = getDrawable("morphe_ic_sc_speed");
-        seekIcon = getDrawable("morphe_ic_sc_seek");
-        forwardIcon = getDrawable("morphe_ic_sc_forward");
-        rewindIcon = getDrawable("morphe_ic_sc_rewind");
 
         SwipeOverlayStyle overlayStyle = config.getOverlayStyle();
 
@@ -271,41 +267,26 @@ public final class SwipeControlsOverlayLayout extends RelativeLayout implements 
         ViewAnimations.fadeIn(viewToShow, FADE_DURATION_MILLIS);
     }
 
-    /**
-     * Displays the progress bar for swipe seeking feedback.
-     */
-    private void showSeekFeedbackView(long targetTimeMs, long videoLengthMs, long seekOffsetMs) {
-        feedbackHideHandler.removeCallbacks(feedbackHideCallback);
-        // Keep the release preview visible while the finger is held still.
-        // onSeekEnded schedules its dismissal after release or cancellation.
-
-        final int progress = videoLengthMs > 0
-                ? (int) Math.max(0, Math.min(100, (targetTimeMs * 100) / videoLengthMs))
-                : 0;
-
-        String formattedTarget = SwipeControlsUtils.formatTime(targetTimeMs);
-        String formattedLength = SwipeControlsUtils.formatTime(videoLengthMs);
-        long offsetSec = seekOffsetMs / 1000;
-        String offsetStr = (offsetSec >= 0 ? "+" : "") + offsetSec + "s";
-        String displayText = formattedTarget + " / " + formattedLength + " (" + offsetStr + ")";
-
-        AbstractProgressView viewToShow = config.getOverlayStyle().isCircular()
-                ? circularProgressView
-                : horizontalProgressView;
-
-        final Drawable icon;
-        if (seekOffsetMs > 0) {
-            icon = forwardIcon != null ? forwardIcon : seekIcon;
-        } else if (seekOffsetMs < 0) {
-            icon = rewindIcon != null ? rewindIcon : seekIcon;
-        } else {
-            icon = seekIcon;
+    private void hideSeekFeedback() {
+        if (seekFeedbackView.getVisibility() == VISIBLE) {
+            seekFeedbackView.animate().cancel();
+            seekFeedbackView.setVisibility(GONE);
         }
+    }
 
-        viewToShow.setProgressColor(config.getOverlaySeekProgressColor());
-        viewToShow.setProgress(progress, 100, displayText, false);
-        viewToShow.icon = icon;
-        ViewAnimations.fadeIn(viewToShow, FADE_DURATION_MILLIS);
+    /** Signed jump and target, centered on the video and visible until the gesture ends. */
+    private void showSeekFeedbackView(long targetTimeMs, long seekOffsetMs) {
+        feedbackHideHandler.removeCallbacks(feedbackHideCallback);
+        circularProgressView.setVisibility(GONE);
+        horizontalProgressView.setVisibility(GONE);
+        verticalBrightnessProgressView.setVisibility(GONE);
+        verticalVolumeProgressView.setVisibility(GONE);
+        String offset = str("morphe_swipe_seek_offset_seconds",
+                SwipeControlsUtils.formatSeekSeconds(seekOffsetMs));
+        seekFeedbackView.setText(offset + "\n[" + SwipeControlsUtils.formatTime(targetTimeMs) + "]");
+        if (seekFeedbackView.getVisibility() != VISIBLE) {
+            ViewAnimations.fadeIn(seekFeedbackView, FADE_DURATION_MILLIS);
+        }
     }
 
     // Handle volume change.
@@ -374,8 +355,8 @@ public final class SwipeControlsOverlayLayout extends RelativeLayout implements 
 
     // Handle seek change.
     @Override
-    public void onSeekChanged(long targetTimeMs, long videoLengthMs, long seekOffsetMs) {
-        showSeekFeedbackView(targetTimeMs, videoLengthMs, seekOffsetMs);
+    public void onSeekChanged(long targetTimeMs, long seekOffsetMs) {
+        showSeekFeedbackView(targetTimeMs, seekOffsetMs);
     }
 
     @Override
