@@ -350,9 +350,16 @@ public final class SwipeControlsConfigurationProvider {
         return Settings.SWIPE_SEEK_ENABLED.get();
     }
 
-    /** Next Player sensitivity in hundredths, applied to density-normalized displacement. */
+    /**
+     * The sensitivity of the swipe seek gesture, representing seconds to seek across the full player width.
+     * Clamped between 1 and 120 seconds, defaulting to 30.
+     */
     public int getSwipeSeekSensitivity() {
-        return SeekBarPreference.clampToRange(Settings.SWIPE_SEEK_SENSITIVITY);
+        final int sensitivity = Settings.SWIPE_SEEK_SENSITIVITY.get();
+        if (sensitivity < 1 || sensitivity > 120) {
+            return Math.max(1, Math.min(120, sensitivity));
+        }
+        return sensitivity;
     }
     //endregion
 
@@ -414,6 +421,13 @@ public final class SwipeControlsConfigurationProvider {
      */
     public int getOverlaySpeedProgressColor() {
         return getSettingColor(Settings.SWIPE_OVERLAY_SPEED_COLOR);
+    }
+
+    /**
+     * The color of the progress indicator in the overlay for swipe seeking.
+     */
+    public int getOverlaySeekProgressColor() {
+        return getSettingColor(Settings.SWIPE_OVERLAY_SEEK_COLOR);
     }
 
     private static int getSettingColor(StringSetting setting) {

@@ -37,18 +37,18 @@ public final class SwipeSeekController {
         return isVideoSeekable() && session.isCurrentVideo(VideoInformation.getVideoId());
     }
 
-    public void onScroll(MotionEvent to, float density, int sensitivityPercent) {
+    public void onScroll(MotionEvent from, MotionEvent to, int playerWidth, int sensitivitySeconds) {
         if (!isVideoSeekable()) {
             onUp(true);
             return;
         }
         if (!session.isActive()) {
             session.begin(VideoInformation.getVideoId(), VideoInformation.getVideoTime(),
-                    VideoInformation.getVideoLength(), to.getX());
+                    VideoInformation.getVideoLength());
         }
-        session.update(to.getX(), density, sensitivityPercent);
+        session.update(to.getX() - from.getX(), playerWidth, sensitivitySeconds);
         if (session.isActive()) {
-            overlay.onSeekChanged(session.getTarget(), session.getOffset());
+            overlay.onSeekChanged(session.getTarget(), session.getDuration(), session.getOffset());
         }
     }
 

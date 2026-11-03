@@ -41,7 +41,6 @@ public abstract class BaseGestureController extends GestureDetector.SimpleOnGest
     private final VolumeAndBrightnessScroller scroller;
 
     private final SwipeSeekController seekController;
-    private final int seekTouchSlop;
 
     /**
      * The main gesture detector that powers everything.
@@ -84,12 +83,7 @@ public abstract class BaseGestureController extends GestureDetector.SimpleOnGest
     public boolean submitTouchEvent(MotionEvent motionEvent) {
         SwipeControlsConfigurationProvider config = controller.getConfig();
 
-        final boolean controlsEnabled = config.isSwipeControlsEnabled();
-        if (!controlsEnabled && !seekController.isSeeking() && !didCancelDownstream && !suppressUntilDown) {
-            return false;
-        }
-
-        final int action = motionEvent.getActionMasked();
+        int action = motionEvent.getActionMasked();
         if (action == MotionEvent.ACTION_DOWN) {
             if (seekController.isSeeking() || didCancelDownstream) {
                 MotionEvent cancel = MotionEvent.obtain(motionEvent);
@@ -106,13 +100,13 @@ public abstract class BaseGestureController extends GestureDetector.SimpleOnGest
             return true;
         }
 
-        final boolean allowed = controlsEnabled
+        boolean allowed = config.isSwipeControlsEnabled()
                 && (!seekController.isSeeking() || (config.isSwipeSeekEnabled()
                     && config.isFullscreenOrMultiWindowVideo() && seekController.isCurrentVideo()))
                 && (!controller.isStatusBarVisible() || controller.isInSplitScreenMode())
                 && !(config.shouldIgnoreSwipesWhenLocked() && SwipeControlsHostActivity.isPlayerLocked());
         if (!allowed) {
-            final boolean claimed = didCancelDownstream;
+            boolean claimed = didCancelDownstream;
             MotionEvent cancel = MotionEvent.obtain(motionEvent);
             cancel.setAction(MotionEvent.ACTION_CANCEL);
             detector.onTouchEvent(cancel);
@@ -301,8 +295,9 @@ public abstract class BaseGestureController extends GestureDetector.SimpleOnGest
             }
             if (isSeekGesture(origin)) {
                 seekController.onScroll(
+                        from,
                         to,
-                        controller.getResources().getDisplayMetrics().density,
+                        controller.getZones().getPlayerWidth(),
                         controller.getConfig().getSwipeSeekSensitivity()
                 );
                 return true;
