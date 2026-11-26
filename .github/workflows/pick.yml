@@ -16,6 +16,7 @@ jobs:
           git config user.email "builder@users.noreply.github.com"
           git fetch https://github.com/MorpheApp/morphe-patches.git pull/4487/head
           git checkout -b block-channel
+          printf '%s\n' 'patches/src/main/resources/addresources/values/youtube/strings.xml merge=union' 'patches/src/main/resources/addresources/values-tr-rTR/youtube/strings.xml merge=union' >> .git/info/attributes
           for c in $(git rev-list -n 5 --reverse FETCH_HEAD); do
             a=$(git log -1 --format=%an $c)
             echo "$c $a"
