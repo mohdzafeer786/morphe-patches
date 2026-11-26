@@ -1,0 +1,24 @@
+name: Add swipe seek
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  pick:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Cherry-pick
+        run: |
+          git config user.name "builder"
+          git config user.email "builder@users.noreply.github.com"
+          git fetch https://github.com/MorpheApp/morphe-patches.git pull/4345/head
+          git checkout -b swipe-seek
+          printf '%s\n' 'patches/src/main/resources/addresources/values/youtube/strings.xml merge=union' >> .git/info/attributes
+          for c in $(git rev-list -n 2 --reverse FETCH_HEAD); do
+            echo "$c"
+            git cherry-pick $c
+          done
+          git push origin swipe-seek
