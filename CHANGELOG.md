@@ -1,3 +1,9 @@
+## [2.4.0](https://github.com/mohdzafeer786/morphe-patches/compare/v2.3.0...v2.4.0) (2026-11-26)
+
+### ✨ New Features
+
+* **YouTube:** Add "Custom buffer" patch with mpv-style RAM buffering ([159ee7d](https://github.com/mohdzafeer786/morphe-patches/commit/159ee7dd3affeeddd708fff220e79ca6d4ddb68b))
+
 ## [2.3.0](https://github.com/MorpheApp/morphe-patches/compare/v2.2.0...v2.3.0) (2026-11-16)
 
 ### ✨ New Features
