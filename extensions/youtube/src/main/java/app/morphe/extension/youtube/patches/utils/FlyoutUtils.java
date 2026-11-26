@@ -7,6 +7,7 @@
 
 package app.morphe.extension.youtube.patches.utils;
 
+import static app.morphe.extension.shared.StringRef.str;
 import static app.morphe.extension.shared.settings.preference.ColorPickerPreference.DISABLED_ALPHA;
 
 import android.annotation.SuppressLint;
@@ -44,6 +45,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -1174,8 +1176,182 @@ public final class FlyoutUtils {
 
             copyListItemTypeface(itemList);
             AddToQueuePatch.onListBound(itemList);
+            hookDontRecommendItemClick(itemList);
         } catch (Exception ex) {
             Logger.printException(() -> "onFlyoutListBound failure", ex);
+        }
+    }
+
+    private static volatile long lastBlockTime = 0;
+
+    private static void hookDontRecommendItemClick(ViewGroup itemList) {
+        try {
+            if (!Settings.BLOCK_CHANNEL_ON_DONT_RECOMMEND.get()) {
+                return;
+            }
+
+            final String currentVideoId = flyoutVideoId;
+            for (var button : visibleFlyoutButtons) {
+                final String buttonName = button.first;
+                final String buttonText = getVisibleFlyoutButtonText(buttonName);
+                if (!isDontRecommendChannelButton(buttonName, buttonText)) {
+                    continue;
+                }
+
+                View item = null;
+                if (buttonText != null) {
+                    for (int i = 0, count = itemList.getChildCount(); i < count; i++) {
+                        if (itemList.getChildAt(i) instanceof ViewGroup row && Utils.getChildView(row, true, view ->
+                                view instanceof TextView rowText && buttonText.contentEquals(rowText.getText())) != null) {
+                            item = row;
+                            break;
+                        }
+                    }
+                } else {
+                    final int itemIndex = button.second - 1;
+                    if (itemIndex >= 0 && itemIndex < itemList.getChildCount()) {
+                        item = itemList.getChildAt(itemIndex);
+                    }
+                }
+
+                if (item != null) {
+                    attachTouchHook(item, () -> handleFlyoutButtonClick(buttonName, buttonText, currentVideoId));
+                }
+            }
+        } catch (Throwable t) {
+            Logger.printException(() -> "hookDontRecommendItemClick failed", t);
+        }
+    }
+
+    private static void attachTouchHook(View view, Runnable action) {
+        try {
+            view.setOnTouchListener((v, event) -> {
+                if (event.getAction() == MotionEvent.ACTION_UP) {
+                    action.run();
+                }
+                return false;
+            });
+            if (view instanceof ViewGroup group) {
+                for (int i = 0, count = group.getChildCount(); i < count; i++) {
+                    attachTouchHook(group.getChildAt(i), action);
+                }
+            }
+        } catch (Throwable t) {
+            Logger.printException(() -> "attachTouchHook failed", t);
+        }
+    }
+
+    public static boolean isDontRecommendChannelButton(@Nullable String buttonName, @Nullable String buttonText) {
+        if (buttonName != null && "PERSON_CIRCLE_SLASH".equals(buttonName)) {
+            return true;
+        }
+        if (buttonText != null) {
+            String text = buttonText.toLowerCase(Locale.ROOT);
+            if (text.contains("önerme")
+                    || text.contains("recommend")
+                    || text.contains("recomendar")
+                    || text.contains("recommander")
+                    || text.contains("empfehlen")
+                    || text.contains("consigliare")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void handleFlyoutButtonClick(String buttonName, @Nullable String buttonText, String videoId) {
+        try {
+            if (!Settings.BLOCK_CHANNEL_ON_DONT_RECOMMEND.get()) {
+                return;
+            }
+
+            if (!isDontRecommendChannelButton(buttonName, buttonText)) {
+                return;
+            }
+
+            long now = System.currentTimeMillis();
+            if (now - lastBlockTime < 2000) {
+                return;
+            }
+            lastBlockTime = now;
+
+            Utils.runOnBackgroundThread(() -> {
+                try {
+                    String channelName = null;
+
+                    ChannelIdRequest request = getFlyoutChannelIdRequest();
+                    if (request == null && videoId != null && !videoId.isEmpty()) {
+                        request = ChannelIdRequest.fetchRequestIfNeeded(videoId);
+                    }
+                    if (request != null) {
+                        Pair<String, String> info = request.getChannelInfo();
+                        if (info != null && info.first != null && !info.first.isEmpty()) {
+                            channelName = info.first;
+                        }
+                    }
+
+                    if (channelName == null || channelName.isEmpty()) {
+                        channelName = getFlyoutChannelName();
+                    }
+
+                    if (channelName == null || channelName.isEmpty()) {
+                        channelName = VideoInformation.getChannelName();
+                    }
+
+                    if (channelName == null || channelName.trim().isEmpty()) {
+                        Logger.printDebug(() -> "Could not find channel name to block for videoId: " + videoId);
+                        return;
+                    }
+
+                    final String finalChannelName = channelName.trim();
+                    blockChannelInKeywordFilter(finalChannelName);
+                } catch (Throwable ex) {
+                    Logger.printException(() -> "Failed to block channel on don't recommend", ex);
+                }
+            });
+        } catch (Throwable t) {
+            Logger.printException(() -> "handleFlyoutButtonClick failed", t);
+        }
+    }
+
+    private static void blockChannelInKeywordFilter(String channelName) {
+        try {
+            String currentKeywords = Settings.HIDE_KEYWORD_CONTENT_PHRASES.get();
+            String quoted = "\"" + channelName + "\"";
+
+            boolean exists = false;
+            if (!currentKeywords.isEmpty()) {
+                for (String line : currentKeywords.split("\n")) {
+                    String trimmed = line.trim();
+                    if (trimmed.equalsIgnoreCase(quoted) || trimmed.equalsIgnoreCase(channelName)) {
+                        exists = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!exists) {
+                String updated = currentKeywords.isEmpty() ? quoted : currentKeywords + "\n" + quoted;
+                Settings.HIDE_KEYWORD_CONTENT_PHRASES.save(updated);
+                Logger.printDebug(() -> "Channel added to keyword filter: " + quoted);
+            }
+
+            if (!Settings.HIDE_KEYWORD_CONTENT_HOME.get()) {
+                Settings.HIDE_KEYWORD_CONTENT_HOME.save(true);
+            }
+            if (!Settings.HIDE_KEYWORD_CONTENT_SEARCH.get()) {
+                Settings.HIDE_KEYWORD_CONTENT_SEARCH.save(true);
+            }
+
+            Utils.runOnMainThread(() -> {
+                try {
+                    Utils.showSnackbarShort(str("morphe_channel_blocked_toast", channelName));
+                } catch (Throwable t) {
+                    Logger.printException(() -> "Failed to show blocked toast", t);
+                }
+            });
+        } catch (Throwable t) {
+            Logger.printException(() -> "blockChannelInKeywordFilter failed", t);
         }
     }
 
