@@ -1,3 +1,14 @@
+## [2.6.0](https://github.com/mohdzafeer786/morphe-patches-old/compare/v2.5.0...v2.6.0) (2026-11-26)
+
+### ✨ New Features
+
+* **youtube:** block channel in keyword filter on don't recommend ([b98d406](https://github.com/mohdzafeer786/morphe-patches-old/commit/b98d406ebe0d0d145bfabebd3ae1d3b6c1bf7e33))
+
+### 🐛 Bug Fixes
+
+* **youtube:** import StringRef.str in FlyoutUtils ([2750146](https://github.com/mohdzafeer786/morphe-patches-old/commit/2750146482a588521589973dd6cb31ccc64707ab))
+* **youtube:** remove smali bytecode wrap in FlyoutPatch to fix startup crash and make touch hook fail-safe ([7c3db78](https://github.com/mohdzafeer786/morphe-patches-old/commit/7c3db78ec66ae0ba5c1ab085bf4245088117f07b))
+
 ## [2.5.0](https://github.com/mohdzafeer786/morphe-patches-old/compare/v2.4.0...v2.5.0) (2026-11-26)
 
 ### ✨ New Features
