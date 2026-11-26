@@ -19,12 +19,19 @@ jobs:
           git fetch https://github.com/MorpheApp/morphe-patches.git pull/4345/head
           git checkout -b Horizontal-Seek
           git cherry-pick FETCH_HEAD || true
-          git checkout --theirs .
+          git checkout --theirs . || true
           git add .
-          git commit -m "Add Horizontal Seek"
-          git push origin Horizontal-Seek
-      - name: Change Name to Horizontal Seek
+          git commit -m "Add Horizontal Seek" || true
+          git push origin Horizontal-Seek || true
+      - name: Change Name and Version
         run: |
-          find . -name "*.xml" -exec sed -i 's/Horizontal seeking/Horizontal Seek/g' {} +
+          find . -name "*.xml" -exec sed -i 's/Horizontal seeking/Horizontal Seek/g' {} + || true
+          find . -name "gradle.properties" -exec sed -i 's/version=2.7.0/version=2.7.1/g' {} + || true
       - name: Build Patches
         run: ./gradlew build -x test
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v2.7.1-horizontal
+          name: Horizontal Seek Release
+          files: patches/build/libs/*.jar
