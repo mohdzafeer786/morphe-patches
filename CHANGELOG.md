@@ -1,3 +1,9 @@
+## [2.7.0](https://github.com/mohdzafeer786/morphe-patches-old/compare/v2.6.0...v2.7.0) (2026-11-26)
+
+### ✨ New Features
+
+* **YouTube - Shorts:** Add `Hide Shorts toolbar` patch ([e50bc4d](https://github.com/mohdzafeer786/morphe-patches-old/commit/e50bc4d232fdcd39295acba1e1520df067bdb26b))
+
 ## [2.6.0](https://github.com/mohdzafeer786/morphe-patches-old/compare/v2.5.0...v2.6.0) (2026-11-26)
 
 ### ✨ New Features

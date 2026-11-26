@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-26T13:35:49",
-  "description": "## [2.6.0](https://github.com/mohdzafeer786/morphe-patches-old/compare/v2.5.0...v2.6.0) (2026-11-26)\n\n### ✨ New Features\n\n* **youtube:** block channel in keyword filter on don't recommend ([b98d406](https://github.com/mohdzafeer786/morphe-patches-old/commit/b98d406ebe0d0d145bfabebd3ae1d3b6c1bf7e33))\n\n### 🐛 Bug Fixes\n\n* **youtube:** import StringRef.str in FlyoutUtils ([2750146](https://github.com/mohdzafeer786/morphe-patches-old/commit/2750146482a588521589973dd6cb31ccc64707ab))\n* **youtube:** remove smali bytecode wrap in FlyoutPatch to fix startup crash and make touch hook fail-safe ([7c3db78](https://github.com/mohdzafeer786/morphe-patches-old/commit/7c3db78ec66ae0ba5c1ab085bf4245088117f07b))",
-  "download_url": "https://github.com/mohdzafeer786/morphe-patches-old/releases/download/v2.6.0/patches-2.6.0.mpp",
+  "created_at": "2026-11-26T14:56:14",
+  "description": "## [2.7.0](https://github.com/mohdzafeer786/morphe-patches-old/compare/v2.6.0...v2.7.0) (2026-11-26)\n\n### ✨ New Features\n\n* **YouTube - Shorts:** Add `Hide Shorts toolbar` patch ([e50bc4d](https://github.com/mohdzafeer786/morphe-patches-old/commit/e50bc4d232fdcd39295acba1e1520df067bdb26b))",
+  "download_url": "https://github.com/mohdzafeer786/morphe-patches-old/releases/download/v2.7.0/patches-2.7.0.mpp",
   "signature_download_url": "",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "public_key": "g8Ys9leTu2yeixojeR35HrNkK6eOSLpA6nNIizRutqI="
 }

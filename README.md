@@ -35,7 +35,7 @@ All modifications made by Morphe, along with their dates, can be found in the Gi
 ## 🩹 Patches list
 
 <!-- PATCHES_START -->
-> **[v2.6.0](https://github.com/mohdzafeer786/morphe-patches-old/releases/tag/v2.6.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;267 patches total
+> **[v2.7.0](https://github.com/mohdzafeer786/morphe-patches-old/releases/tag/v2.7.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;268 patches total
 <details>
 <summary>📦 YouTube Music&nbsp;&nbsp;•&nbsp;&nbsp;63 patches</summary>
 <br>
@@ -114,7 +114,7 @@ All modifications made by Morphe, along with their dates, can be found in the Gi
 </details>
 
 <details>
-<summary>📦 YouTube&nbsp;&nbsp;•&nbsp;&nbsp;130 patches</summary>
+<summary>📦 YouTube&nbsp;&nbsp;•&nbsp;&nbsp;131 patches</summary>
 <br>
 
 **🎯 Supported versions:**
@@ -181,6 +181,7 @@ All modifications made by Morphe, along with their dates, can be found in the Gi
 | [Glass menus](#glass-menus) | Adds an option to show the menus as frosted glass, with the content behind the menu blurred. This patch works on Android 12 and newer. |  |
 | [GmsCore support](#gmscore-support) | Allows the app to work without root by using a different package name when patched using a GmsCore instead of Google Play Services. |  |
 | [Hide Shorts components](#hide-shorts-components) | Adds options to hide components related to Shorts. | • Hide Shorts app shortcut<br>• Hide Shorts widget |
+| [Hide Shorts toolbar](#hide-shorts-toolbar) | Adds options to hide the toolbar and the system status bar while watching Shorts. |  |
 | [Hide ads](#hide-ads) | Adds options to hide general ads, Premium promotions and video ads. |  |
 | [Hide autoplay preview](#hide-autoplay-preview) | Adds an option to hide the autoplay preview at the end of videos. |  |
 | [Hide end screen cards](#hide-end-screen-cards) | Adds an option to hide suggested video cards at the end of videos. |  |
