@@ -1,0 +1,21 @@
+name: Add hide shorts toolbar
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  pick:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Cherry-pick
+        run: |
+          git config user.name "builder"
+          git config user.email "builder@users.noreply.github.com"
+          git fetch https://github.com/MorpheApp/morphe-patches.git pull/4881/head
+          git checkout -b hide-shorts-toolbar
+          printf '%s\n' 'patches/src/main/resources/addresources/values/youtube/strings.xml merge=union' >> .git/info/attributes
+          git cherry-pick FETCH_HEAD
+          git push origin hide-shorts-toolbar
