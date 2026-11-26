@@ -1,0 +1,30 @@
+name: Horizontal Seek
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Fetch and Cherry Pick
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git fetch https://github.com/MorpheApp/morphe-patches.git pull/4345/head
+          git checkout -b Horizontal-Seek
+          git cherry-pick FETCH_HEAD || true
+          git checkout --theirs .
+          git add .
+          git commit -m "Add Horizontal Seek"
+          git push origin Horizontal-Seek
+      - name: Change Name to Horizontal Seek
+        run: |
+          find . -name "*.xml" -exec sed -i 's/Horizontal seeking/Horizontal Seek/g' {} +
+      - name: Build Patches
+        run: ./gradlew build -x test
