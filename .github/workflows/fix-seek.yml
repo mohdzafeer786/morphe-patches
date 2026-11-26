@@ -1,0 +1,20 @@
+name: Force Add Swipe Seek
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  pick:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch and Cherry Pick
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git fetch https://github.com/MorpheApp/morphe-patches.git pull/4345/head
+          git checkout -b swipe-seek
+          git cherry-pick FETCH_HEAD || true
+          git checkout --theirs .
+          git add .
+          git commit -m "Resolve conflicts by taking PR changes"
+          git push origin swipe-seek
