@@ -1,0 +1,19 @@
+name: Build Patches with Google Mirror
+on: workflow_dispatch
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Add Google Mirror
+        run: |
+          echo "org.gradle.internal.repository.max.retries=5" >> gradle.properties
+          echo "repositories { maven { url 'https://maven.google.com' } }" >> init.gradle
+          echo "allprojects { repositories { maven { url 'https://maven.google.com' } } }" >> init.gradle
+      - name: Build Patches
+        run: ./gradlew build -x test --init-script init.gradle
