@@ -35,7 +35,7 @@ All modifications made by Morphe, along with their dates, can be found in the Gi
 ## 🩹 Patches list
 
 <!-- PATCHES_START -->
-> **[v2.4.0](https://github.com/MorpheApp/morphe-patches/releases/tag/v2.4.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;266 patches total
+> **[v2.5.0](https://github.com/mohdzafeer786/morphe-patches-old/releases/tag/v2.5.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;267 patches total
 <details>
 <summary>📦 YouTube Music&nbsp;&nbsp;•&nbsp;&nbsp;63 patches</summary>
 <br>
@@ -114,7 +114,7 @@ All modifications made by Morphe, along with their dates, can be found in the Gi
 </details>
 
 <details>
-<summary>📦 YouTube&nbsp;&nbsp;•&nbsp;&nbsp;129 patches</summary>
+<summary>📦 YouTube&nbsp;&nbsp;•&nbsp;&nbsp;130 patches</summary>
 <br>
 
 **🎯 Supported versions:**
