@@ -348,8 +348,8 @@ public class StreamingDataRequest {
      *         stream urls (not SABR). False if unknown or if the player uses the streams of the app.
      */
     public static boolean playerClientUsesStreamUrls(@Nullable String videoId) {
-        ClientType client = videoId == null ? null : playerClients.get(videoId);
-        return client != null && !client.requireSABR;
+        StreamData stream = videoId == null ? null : playerStreams.get(videoId);
+        return stream != null && !stream.client.requireSABR;
     }
 
     private final String videoId;
