@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   sync:
@@ -30,7 +31,10 @@ jobs:
           git fetch https://github.com/MorpheApp/morphe-patches.git dev
 
       - name: Merge official dev
+        id: merge
         run: |
+          LAYOUT_FILE="patches/src/main/kotlin/app/morphe/patches/youtube/layout/hide/general/HideLayoutComponentsPatch.kt"
+
           printf '%s\n' \
             'patches/src/main/resources/addresources/values/youtube/strings.xml merge=union' \
             'patches/src/main/resources/addresources/values-tr-rTR/youtube/strings.xml merge=union' \
@@ -43,11 +47,11 @@ jobs:
             exit 0
           fi
 
-          # Keep your own GitHub workflows
+          # Preserve your own GitHub workflows
           git rm -rq --cached .github || true
           git checkout HEAD -- .github
 
-          # Keep upstream generated release metadata
+          # Use official generated metadata
           for f in CHANGELOG.md README.md patches-bundle.json patches-list.json; do
             if git diff --name-only --diff-filter=U | grep -qx "$f"; then
               git checkout --theirs -- "$f"
@@ -55,6 +59,80 @@ jobs:
             fi
           done
 
+          # Preserve your independent release version
+          if git diff --name-only --diff-filter=U | grep -qx "gradle.properties"; then
+            git checkout --ours -- gradle.properties
+            git add gradle.properties
+          fi
+
+          # Merge official HideLayoutComponentsPatch.kt
+          # while preserving your custom Tap and Hold implementation.
+          if git diff --name-only --diff-filter=U | grep -qx "$LAYOUT_FILE"; then
+            git show FETCH_HEAD:"$LAYOUT_FILE" > "$LAYOUT_FILE"
+
+            python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("patches/src/main/kotlin/app/morphe/patches/youtube/layout/hide/general/HideLayoutComponentsPatch.kt")
+          content = path.read_text()
+
+          official = '''            // Right after the "already speeding up" check.
+                      it.method.addInstructionsAtControlFlowLabel(
+                          it.instructionMatches[5].index + 1,
+                          "invoke-static { }, $LAYOUT_COMPONENTS_FILTER->onTapAndHoldStart()V"
+                      )
+
+                      // Track when tap and hold ends.
+                      TapAndHoldSpeedEndFingerprint.method.addInstruction(
+                          0,
+                          "invoke-static { }, $LAYOUT_COMPONENTS_FILTER->onTapAndHoldEnd()V"
+                      )'''
+
+          custom = '''            // The class that overrides the speed, and restores it when tap and hold ends.
+                      val speedControllerType = it.instructionMatches[6].fieldReference.type
+
+                      // Right after the "already speeding up" check.
+                      it.method.addInstructionsAtControlFlowLabel(
+                          it.instructionMatches[5].index + 1,
+                          "invoke-static { }, $LAYOUT_COMPONENTS_FILTER->onTapAndHoldStart()V"
+                      )
+
+                      // Track when tap and hold ends.
+                      Fingerprint(
+                          definingClass = speedControllerType,
+                          accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
+                          returnType = "V",
+                          parameters = listOf()
+                      ).method.addInstruction(
+                          0,
+                          "invoke-static { }, $LAYOUT_COMPONENTS_FILTER->onTapAndHoldEnd()V"
+                      )'''
+
+          if content.count(official) != 1:
+              raise SystemExit("Expected official TapAndHold block not found exactly once. Stopping safely.")
+
+          content = content.replace(official, custom, 1)
+
+          import_line = "import app.morphe.patcher.Match\n"
+          fingerprint_import = "import app.morphe.patcher.Fingerprint\n"
+
+          if fingerprint_import not in content:
+              if import_line not in content:
+                  raise SystemExit("Could not locate import section.")
+              content = content.replace(
+                  import_line,
+                  fingerprint_import + import_line,
+                  1
+              )
+
+          path.write_text(content)
+          print("Official code merged; custom Tap and Hold logic preserved.")
+          PY
+
+            git add "$LAYOUT_FILE"
+          fi
+
+          # Stop if any unexpected conflict remains
           LEFT=$(git diff --name-only --diff-filter=U)
 
           if [ -n "$LEFT" ]; then
@@ -66,4 +144,13 @@ jobs:
 
           git commit -m "chore: Sync official Morphe dev [skip ci]"
           git push origin HEAD:dev
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Trigger Dev Release
+        if: steps.merge.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run release.yml --ref dev
           
