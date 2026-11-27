@@ -27,6 +27,17 @@ jobs:
           git fetch https://github.com/MorpheApp/morphe-patches.git pull/4658/head
           git checkout -b settings-profile-final
           git cherry-pick FETCH_HEAD
+          python3 - <<'PY'
+          import re, glob
+          for f in glob.glob('**/AbstractPreferenceFragment.java', recursive=True):
+              s = open(f).read()
+              if 'settingImportInProgress' not in s:
+                  s2 = re.sub(r'(class AbstractPreferenceFragment[^{]*\{)', r'\1\n    public static boolean settingImportInProgress = false;', s, count=1)
+                  open(f, 'w').write(s2)
+                  print('patched', f)
+          PY
+          git add -A
+          git commit -m "Add missing import flag" || true
       - name: Test build
         run: ./gradlew :patches:buildAndroid --no-daemon
       - name: Push branch
