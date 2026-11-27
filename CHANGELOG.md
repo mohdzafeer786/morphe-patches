@@ -1,3 +1,9 @@
+## [2.10.0](https://github.com/mohdzafeer786/morphe-patches-new/compare/v2.9.0...v2.10.0) (2026-11-27)
+
+### ✨ New Features
+
+* **YouTube:** Add 'Dim Shorts overlay' patch ([1f84bdc](https://github.com/mohdzafeer786/morphe-patches-new/commit/1f84bdccf90c9c6a6268ea34308282fc38191336))
+
 ## [2.9.0](https://github.com/mohdzafeer786/morphe-patches-new/compare/v2.8.0...v2.9.0) (2026-11-27)
 
 ### ✨ New Features
