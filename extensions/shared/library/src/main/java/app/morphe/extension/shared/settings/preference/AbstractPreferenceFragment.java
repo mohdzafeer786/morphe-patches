@@ -88,6 +88,7 @@ import app.morphe.extension.shared.ui.Dim;
 
 @SuppressWarnings({"unused", "deprecation"})
 public abstract class AbstractPreferenceFragment extends PreferenceFragment {
+    public static boolean settingImportInProgress = false;
 
     private static void performToggleHaptic(View view, TwoStatePreference pref) {
         int feedbackConstant = Build.VERSION.SDK_INT >= 34
