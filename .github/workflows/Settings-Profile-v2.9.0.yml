@@ -2,6 +2,7 @@ name: Build Settings Profile v2.9.0
 on: workflow_dispatch
 permissions:
   contents: write
+  packages: read   # <-- Yeh line sabse zaroori hai
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -28,6 +29,9 @@ jobs:
           find . -name "gradle.properties" -exec sed -i 's/version=.*/version=2.9.0/g' {} + || true
           find . -name "build.gradle.kts" -exec sed -i 's/version = ".*"/version = "2.9.0"/g' {} + || true
       - name: Build Patches
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./gradlew build -x test
       - name: Create Release
         uses: softprops/action-gh-release@v2
