@@ -1,0 +1,37 @@
+name: Build Settings Profile v2.9.0
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Fetch and Cherry Pick Settings Profile
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git fetch https://github.com/MorpheApp/morphe-patches.git pull/4658/head
+          git checkout -b settings-profile-2.9.0
+          git cherry-pick FETCH_HEAD || true
+          git checkout --theirs . || true
+          git add .
+          git commit -m "Add Settings Profile for v2.9.0" || true
+          git push origin settings-profile-2.9.0 || true
+      - name: Change Version to 2.9.0
+        run: |
+          find . -name "gradle.properties" -exec sed -i 's/version=.*/version=2.9.0/g' {} + || true
+          find . -name "build.gradle.kts" -exec sed -i 's/version = ".*"/version = "2.9.0"/g' {} + || true
+      - name: Build Patches
+        run: ./gradlew build -x test
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v2.9.0-settings-profile
+          name: Settings Profile Release v2.9.0
+          files: patches/build/libs/*.jar
