@@ -1,3 +1,9 @@
+## [2.9.0](https://github.com/mohdzafeer786/morphe-patches-new/compare/v2.8.0...v2.9.0) (2026-11-27)
+
+### ✨ New Features
+
+* **YouTube:** Add `Settings profile` patch ([d8e0740](https://github.com/mohdzafeer786/morphe-patches-new/commit/d8e07406b7791f2e7e4695a2ff892c8ceb21bda2))
+
 ## [2.8.0](https://github.com/mohdzafeer786/morphe-patches-new/compare/v2.7.0...v2.8.0) (2026-11-27)
 
 ### ✨ New Features
