@@ -12,10 +12,11 @@ package app.morphe.extension.youtube.swipecontrols.controller.gesture.core;
 
 import android.view.GestureDetector;
 import android.view.MotionEvent;
-import android.view.ViewConfiguration;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import app.morphe.extension.youtube.patches.onthego.OnTheGoPatch;
 import app.morphe.extension.youtube.swipecontrols.SwipeControlsConfigurationProvider;
 import app.morphe.extension.youtube.swipecontrols.SwipeControlsConfigurationProvider.SwipeZoneAction;
 import app.morphe.extension.youtube.swipecontrols.SwipeControlsHostActivity;
@@ -28,6 +29,7 @@ import app.morphe.extension.youtube.swipecontrols.misc.Point;
  * The common base of all {@link GestureController} classes.
  * Handles most of the boilerplate code needed for gesture detection.
  */
+@SuppressWarnings("unused")
 public abstract class BaseGestureController extends GestureDetector.SimpleOnGestureListener
         implements GestureController {
 
@@ -40,8 +42,7 @@ public abstract class BaseGestureController extends GestureDetector.SimpleOnGest
 
     private final VolumeAndBrightnessScroller scroller;
 
-    private final SwipeSeekController seekController;
-    private final int seekTouchSlop;
+    private final SwipeSeekController seek = new SwipeSeekController();
 
     /**
      * The main gesture detector that powers everything.
@@ -53,8 +54,6 @@ public abstract class BaseGestureController extends GestureDetector.SimpleOnGest
      */
     private boolean didCancelDownstream;
 
-    private boolean suppressUntilDown;
-
     /**
      * @param controller Reference to the main swipe controller.
      */
@@ -62,7 +61,6 @@ public abstract class BaseGestureController extends GestureDetector.SimpleOnGest
         this.controller = controller;
         SwipeControlsConfigurationProvider config = controller.getConfig();
         swipeDetector = new SwipeDetector(config.getSwipeMagnitudeThreshold());
-        seekTouchSlop = ViewConfiguration.get(controller).getScaledTouchSlop();
         scroller = new VolumeAndBrightnessScroller(
                 controller,
                 controller.getAudio(),
@@ -74,52 +72,15 @@ public abstract class BaseGestureController extends GestureDetector.SimpleOnGest
                 config.getSpeedStepInt(),
                 config.isSpeedControlEnabled()
         );
-        seekController = controller.getSeek() != null
-                ? controller.getSeek()
-                : new SwipeSeekController(controller.getOverlay());
         detector = new GestureDetector(controller, this);
     }
 
     @Override
     public boolean submitTouchEvent(MotionEvent motionEvent) {
-        SwipeControlsConfigurationProvider config = controller.getConfig();
-
-        final boolean controlsEnabled = config.isSwipeControlsEnabled();
-        if (!controlsEnabled && !seekController.isSeeking() && !didCancelDownstream && !suppressUntilDown) {
+        if (!canSwipe()) {
+            // Do not leave the time bar scrubbing when swiping stops being possible during a seek.
+            seek.end(true);
             return false;
-        }
-
-        final int action = motionEvent.getActionMasked();
-        if (action == MotionEvent.ACTION_DOWN) {
-            if (seekController.isSeeking() || didCancelDownstream) {
-                MotionEvent cancel = MotionEvent.obtain(motionEvent);
-                cancel.setAction(MotionEvent.ACTION_CANCEL);
-                detector.onTouchEvent(cancel);
-                onUp(cancel);
-                cancel.recycle();
-            }
-            suppressUntilDown = false;
-        } else if (suppressUntilDown) {
-            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
-                suppressUntilDown = false;
-            }
-            return true;
-        }
-
-        final boolean allowed = controlsEnabled
-                && (!seekController.isSeeking() || (config.isSwipeSeekEnabled()
-                    && config.isFullscreenOrMultiWindowVideo() && seekController.isCurrentVideo()))
-                && (!controller.isStatusBarVisible() || controller.isInSplitScreenMode())
-                && !(config.shouldIgnoreSwipesWhenLocked() && SwipeControlsHostActivity.isPlayerLocked());
-        if (!allowed) {
-            final boolean claimed = didCancelDownstream;
-            MotionEvent cancel = MotionEvent.obtain(motionEvent);
-            cancel.setAction(MotionEvent.ACTION_CANCEL);
-            detector.onTouchEvent(cancel);
-            onUp(cancel);
-            cancel.recycle();
-            suppressUntilDown = claimed && action != MotionEvent.ACTION_UP && action != MotionEvent.ACTION_CANCEL;
-            return claimed;
         }
 
         // Create a copy of the event so we can modify it without causing any issues downstream.
@@ -137,11 +98,8 @@ public abstract class BaseGestureController extends GestureDetector.SimpleOnGest
         // Evaluate swipe zone before recycling.
         final boolean inSwipeZone = isInSwipeZone(me);
 
-        final boolean claimed = didCancelDownstream;
-        if (dropped && claimed) {
-            suppressUntilDown = motionEvent.getActionMasked() != MotionEvent.ACTION_UP
-                    && motionEvent.getActionMasked() != MotionEvent.ACTION_CANCEL;
-        }
+        // A seek swipe can move outside the swipe zones, and ends in onUp.
+        final boolean seeking = seek.isScrubbing();
 
         // Invoke the custom onUp handler.
         if (me.getAction() == MotionEvent.ACTION_UP || me.getAction() == MotionEvent.ACTION_CANCEL) {
@@ -152,35 +110,52 @@ public abstract class BaseGestureController extends GestureDetector.SimpleOnGest
         me.recycle();
 
         // Do not consume dropped events or events outside any swipe zone.
-        return claimed || (!dropped && consumed && inSwipeZone);
+        return !dropped && ((consumed && inSwipeZone) || seeking);
+    }
+
+    private boolean canSwipe() {
+        SwipeControlsConfigurationProvider config = controller.getConfig();
+
+        // Ignore if swipe is disabled.
+        if (!config.isSwipeControlsEnabled()) {
+            return false;
+        }
+
+        // Ignore if status bar is visible (unless the screen is shared with another app).
+        if (controller.isStatusBarVisible() && !controller.isInSplitScreenMode()) {
+            return false;
+        }
+
+        // Ignore if the On-the-go panel is open. It covers the fullscreen player,
+        // so the swipes on its controls would change the volume or brightness.
+        if (OnTheGoPatch.isOnTheGoActive()) {
+            return false;
+        }
+
+        // Ignore if the native lock screen is engaged.
+        return !config.shouldIgnoreSwipesWhenLocked() || !SwipeControlsHostActivity.isPlayerLocked();
     }
 
     /**
-     * Custom handler for {@link MotionEvent#ACTION_UP} and {@link MotionEvent#ACTION_CANCEL} events,
-     * since GestureDetector doesn't provide one.
+     * Custom handler for {@link MotionEvent#ACTION_UP} events, since GestureDetector doesn't provide one.
      *
      * @param motionEvent The motion event.
      */
     protected void onUp(MotionEvent motionEvent) {
-        final boolean isCancelled = motionEvent.getAction() == MotionEvent.ACTION_CANCEL;
-        seekController.onUp(isCancelled);
+        seek.end(motionEvent.getAction() == MotionEvent.ACTION_CANCEL);
         didCancelDownstream = false;
         swipeDetector.resetSwipe();
         scroller.resetScroller();
     }
 
     @Override
-    public boolean onScroll(@Nullable MotionEvent from, MotionEvent to, float distanceX, float distanceY) {
+    public boolean onScroll(@Nullable MotionEvent from, @NonNull MotionEvent to, float distanceX, float distanceY) {
         if (from == null) {
             return false;
         }
 
         // Submit to swipe detector.
-        if (isSeekGesture(Point.fromMotionEvent(from))) {
-            swipeDetector.submitForSwipe(from, to, seekTouchSlop);
-        } else {
-            swipeDetector.submitForSwipe(from, to);
-        }
+        swipeDetector.submitForSwipe(from, to);
 
         // Call swipe callback if in a swipe.
         if (getCurrentSwipe() == SwipeDirection.NONE) {
@@ -223,28 +198,38 @@ public abstract class BaseGestureController extends GestureDetector.SimpleOnGest
         SwipeControlsConfigurationProvider config = controller.getConfig();
         SwipeZonesController zones = controller.getZones();
         Point point = Point.fromMotionEvent(motionEvent);
-        if (config.isSwipeSeekEnabled() && SwipeSeekController.isVideoSeekable() && zones.getEffectiveSwipeRect().contains(point)) {
-            return true;
-        }
         return (config.getTopZoneAction() != SwipeZoneAction.OFF && zones.getTop().contains(point))
                 || (config.getLeftZoneAction() != SwipeZoneAction.OFF && zones.getLeft().contains(point))
                 || (config.getRightZoneAction() != SwipeZoneAction.OFF && zones.getRight().contains(point));
     }
 
     /**
-     * Checks if a swipe starting at {@code origin} should trigger horizontal seeking.
+     * Checks if a horizontal swipe that starts at the point seeks.
+     * The top zone keeps its horizontal swipes if it has an action.
      */
-    protected boolean isSeekGesture(Point origin) {
+    protected boolean isInSeekArea(Point point) {
         SwipeControlsConfigurationProvider config = controller.getConfig();
         SwipeZonesController zones = controller.getZones();
-        if (!config.isSwipeSeekEnabled() || !SwipeSeekController.isVideoSeekable()) {
-            return false;
-        }
-        // Top speed gesture priority: if in top zone and top zone is SPEED, speed wins.
-        if (zones.getTop().contains(origin) && config.getTopZoneAction() == SwipeZoneAction.SPEED) {
-            return false;
-        }
-        return zones.getEffectiveSwipeRect().contains(origin);
+        return config.isSwipeSeekEnabled()
+                && SwipeSeekController.canSeek()
+                && zones.getEffectiveSwipeRect().contains(point)
+                && !(config.getTopZoneAction() != SwipeZoneAction.OFF && zones.getTop().contains(point));
+    }
+
+    protected boolean isSeeking() {
+        return seek.isScrubbing();
+    }
+
+    /**
+     * Checks if the current swipe belongs to swipe controls.
+     *
+     * @param origin Where the swipe started.
+     */
+    protected boolean isSwipeControlled(Point origin) {
+        SwipeDirection direction = getCurrentSwipe();
+        return isSeeking()
+                || swipeActionAt(origin, direction) != SwipeZoneAction.OFF
+                || (direction == SwipeDirection.HORIZONTAL && isInSeekArea(origin));
     }
 
     /**
@@ -284,33 +269,26 @@ public abstract class BaseGestureController extends GestureDetector.SimpleOnGest
      * Applies the action of the zone the swipe started in.
      *
      * @param from      Start event of the swipe.
-     * @param to        Current event of the swipe.
      * @param distanceX The horizontal distance of the swipe.
      * @param distanceY The vertical distance of the swipe.
      * @return Whether the swipe was consumed.
      */
-    protected boolean applySwipeAction(MotionEvent from, MotionEvent to, double distanceX, double distanceY) {
+    protected boolean applySwipeAction(MotionEvent from, double distanceX, double distanceY) {
         SwipeDirection direction = getCurrentSwipe();
         final double distance = direction == SwipeDirection.HORIZONTAL ? -distanceX : distanceY;
         Point origin = Point.fromMotionEvent(from);
+        SwipeZoneAction action = swipeActionAt(origin, direction);
 
-        if (direction == SwipeDirection.HORIZONTAL) {
-            if (swipeActionAt(origin, direction) == SwipeZoneAction.SPEED) {
-                scroller.scrollSpeed(distance);
+        if (direction == SwipeDirection.HORIZONTAL && action == SwipeZoneAction.OFF) {
+            if (seek.isScrubbing()) {
+                seek.move((float) distance);
                 return true;
             }
-            if (isSeekGesture(origin)) {
-                seekController.onScroll(
-                        to,
-                        controller.getResources().getDisplayMetrics().density,
-                        controller.getConfig().getSwipeSeekSensitivity()
-                );
-                return true;
-            }
-            return false;
+            // The movement that started the swipe does not seek.
+            return isInSeekArea(origin) && seek.start(controller.getConfig().getSwipeSeekSensitivity());
         }
 
-        switch (swipeActionAt(origin, direction)) {
+        switch (action) {
             case VOLUME -> scroller.scrollVolume(distance);
             case BRIGHTNESS -> scroller.scrollBrightness(distance);
             case SPEED -> scroller.scrollSpeed(distance);
