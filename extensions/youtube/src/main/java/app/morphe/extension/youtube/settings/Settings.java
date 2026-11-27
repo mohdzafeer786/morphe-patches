@@ -846,6 +846,8 @@ public class Settings extends SharedYouTubeSettings {
     public static final BooleanSetting SHORTS_AUTOPLAY = new BooleanSetting("morphe_shorts_autoplay", FALSE);
     public static final BooleanSetting SHORTS_AUTOPLAY_BACKGROUND = new BooleanSetting("morphe_shorts_autoplay_background", TRUE);
     public static final BooleanSetting SKIP_LIVE_SHORTS = new BooleanSetting("morphe_skip_live_shorts", FALSE);
+    public static final IntegerSetting SHORTS_OVERLAY_OPACITY = new IntegerSetting("morphe_shorts_overlay_opacity", 90, false);
+    public static final BooleanSetting SHORTS_IMMERSIVE_MODE = new BooleanSetting("morphe_shorts_immersive_mode", TRUE);
 
     // Seekbar
     public static final BooleanSetting DISABLE_PRECISE_SEEKING_GESTURE = new BooleanSetting("morphe_disable_precise_seeking_gesture", FALSE);
