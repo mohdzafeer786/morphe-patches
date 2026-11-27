@@ -67,6 +67,8 @@ public final class SwipeControlsOverlayLayout extends RelativeLayout implements 
 
     private final TextView seekFeedbackView;
 
+    private final TextView seekFeedbackView;
+
     // Progress bars.
     private final CircularProgressView circularProgressView;
     private final HorizontalProgressView horizontalProgressView;
