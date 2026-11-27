@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-27T10:16:04",
-  "description": "## [2.10.0](https://github.com/mohdzafeer786/morphe-patches-new/compare/v2.9.0...v2.10.0) (2026-11-27)\n\n### ✨ New Features\n\n* **YouTube:** Add 'Dim Shorts overlay' patch ([1f84bdc](https://github.com/mohdzafeer786/morphe-patches-new/commit/1f84bdccf90c9c6a6268ea34308282fc38191336))",
-  "download_url": "https://github.com/mohdzafeer786/morphe-patches-new/releases/download/v2.10.0/patches-2.10.0.mpp",
+  "created_at": "2026-11-27T12:27:01",
+  "description": "## [2.5.0-dev.2](https://github.com/MorpheApp/morphe-patches/compare/v2.5.0-dev.1...v2.5.0-dev.2) (2026-11-27)\n\n### ✨ New Features\n\n* **YouTube - Shorts autoplay:** Add Autoplay toggle to the Shorts player menu ([#5448](https://github.com/MorpheApp/morphe-patches/issues/5448)) ([2bce34c](https://github.com/MorpheApp/morphe-patches/commit/2bce34cbd16640875b14259223a08870552ad2e6))\n\n### 🐛 Bug Fixes\n\n* **YouTube - Open post images in fullscreen:** Fix crash when a feed has a post with images ([9c098c1](https://github.com/MorpheApp/morphe-patches/commit/9c098c17efdc2cb86bf9ccf9b41cff96441529ff))",
+  "download_url": "https://github.com/MorpheApp/morphe-patches/releases/download/v2.5.0-dev.2/patches-2.5.0-dev.2.mpp",
   "signature_download_url": "",
-  "version": "2.10.0",
+  "version": "2.5.0-dev.2",
   "public_key": "g8Ys9leTu2yeixojeR35HrNkK6eOSLpA6nNIizRutqI="
 }

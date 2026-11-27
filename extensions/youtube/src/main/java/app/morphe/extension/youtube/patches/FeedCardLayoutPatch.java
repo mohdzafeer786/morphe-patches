@@ -102,6 +102,7 @@ import app.morphe.extension.youtube.innertube.FeedCardLayoutOuterClass.LikeEndpo
 import app.morphe.extension.youtube.innertube.FeedCardLayoutOuterClass.LikeStatusEntity;
 import app.morphe.extension.youtube.innertube.FeedCardLayoutOuterClass.LikeStatusEntityKey;
 import app.morphe.extension.youtube.innertube.FeedCardLayoutOuterClass.LikeTarget;
+import app.morphe.extension.youtube.innertube.FeedCardLayoutOuterClass.LockupExperiments;
 import app.morphe.extension.youtube.innertube.FeedCardLayoutOuterClass.LockupInlinePlayback;
 import app.morphe.extension.youtube.innertube.FeedCardLayoutOuterClass.LockupImage;
 import app.morphe.extension.youtube.innertube.FeedCardLayoutOuterClass.LockupMetadata;
@@ -188,17 +189,21 @@ public class FeedCardLayoutPatch {
     private static final boolean ACTION_BUTTONS = LAYOUT == FeedCardLayout.CARDS_WITH_ACTION_BUTTONS;
 
     /**
-     * If the default layout has shown the cards of the newer A/B test, which get the padding of the card layout,
-     * see convertServerCard(). The lists then draw them as cards. The accounts with the older layouts never
-     * get these cards, so their lists are not changed.
+     * If YouTube has sent the cards of a newer A/B test with the default layout, which shows them as they are sent.
+     * The accounts with the older layouts never get these cards.
      */
     private static volatile boolean newServerCardsShown;
 
+    @SuppressWarnings("SameReturnValue")
+    public static boolean isPatchIncluded() {
+        return false; // Modified during patching.
+    }
+
     /**
-     * @return If the lists draw the cards: with the card layout, or with the default layout
-     *         once the cards of the newer A/B test are shown.
+     * @return If the feeds show cards: with the card layout, or with the default layout
+     *         once YouTube has sent the cards of the newer A/B test.
      */
-    private static boolean listsDrawCards() {
+    public static boolean feedShowsCards() {
         return CARD_LAYOUT || newServerCardsShown;
     }
 
@@ -365,7 +370,7 @@ public class FeedCardLayoutPatch {
     /**
      * Menu items that the menu of the cards with a save button doesn't have.
      */
-    private static final StringRef SAVE_TO_WATCH_LATER = StringRef.sfc("morphe_save_to_watch_later_flyout_title");
+    private static final StringRef SAVE_TO_WATCH_LATER = StringRef.sfc("morphe_save_to_watch_later_title");
     private static final StringRef SAVE_TO_PLAYLIST = StringRef.sfc("accessibility_save_to_playlists");
     private static final String SENDER_VIEW_KEY = "com.google.android.libraries.youtube.rendering.elements.sender_view";
     /**
@@ -432,11 +437,16 @@ public class FeedCardLayoutPatch {
             GRID_COLLECTION_TEMPLATE, COMPACT_PLAYLIST_TEMPLATE}
             : new String[]{CARD_TEMPLATE};
     /**
-     * Templates changed by the default layout: the cards of a newer A/B test, and the Shorts shelves
-     * and the shelf headers of the same A/B test.
+     * Templates of the cards and of the Shorts shelves of a newer A/B test, which the default layout looks for.
      */
     private static final ByteTrieSearch defaultLayoutSearch = new ByteTrieSearch(
-            ByteTrieSearch.convertStringsToBytes(CARD_TEMPLATE, SHELF_HEADER_TEMPLATE, SHORTS_VIDEO_CELL_TEMPLATE));
+            ByteTrieSearch.convertStringsToBytes(CARD_TEMPLATE, SHORTS_VIDEO_CELL_TEMPLATE));
+    /**
+     * Experiment of the blurred background at the bottom of the cards, enableBlurredBottomBackground (field 500561)
+     * set to true, in the bytes of the elements.
+     */
+    private static final ByteTrieSearch blurredBottomBackgroundSearch = new ByteTrieSearch(
+            new byte[]{(byte) 0x88, (byte) 0xB5, (byte) 0xF4, 0x01, 0x01});
     /**
      * Labels of the shelf headers, in the bytes of the converted elements.
      */
@@ -795,15 +805,46 @@ public class FeedCardLayoutPatch {
      * Injection point.
      */
     public static byte[] setFeedCardLayout(byte[] bytes) {
-        // The default layout changes only the cards of a newer A/B test, see convertServerCard(),
-        // and the spacing of the Shorts shelves and the shelf headers of the same A/B test.
-        if (LAYOUT == FeedCardLayout.DEFAULT && !defaultLayoutSearch.matches(bytes)) {
+        if (LAYOUT == FeedCardLayout.DEFAULT) {
+            // The default layout shows the elements as YouTube sends them, and only checks if YouTube sends
+            // the cards of a newer A/B test, see feedShowsCards(). The cards only lose the blurred background
+            // at the bottom, see withoutBlurredBottomBackground().
+            if ((!newServerCardsShown && defaultLayoutSearch.matches(bytes))
+                    || blurredBottomBackgroundSearch.matches(bytes)) {
+                try {
+                    Element element = Element.parseFrom(bytes);
+                    ComponentType componentType = element.getType().getComponentType();
+                    String uri = componentType.getTemplateConfig().getUriTemplateConfig().getUri();
+                    ElementModel model = componentType.getModel();
+                    final boolean isCard = isTemplate(uri, CARD_TEMPLATE) && model.hasLockupModel();
+                    // The cards of this A/B test have no padding, unlike the cards of an older A/B test,
+                    // and the grid of its Shorts shelf has no margins.
+                    final boolean newCard = isCard && !model.getLockupModel().hasPadding();
+                    final boolean newShortsShelf = isTemplate(uri, SHORTS_VIDEO_CELL_TEMPLATE)
+                            && model.hasShortsVideoCellModel()
+                            && model.getShortsVideoCellModel().getGrid().getNoMargins();
+                    if (newCard || newShortsShelf) {
+                        newServerCardsShown = true;
+                    }
+
+                    LockupModel card = isCard ? withoutBlurredBottomBackground(model.getLockupModel()) : null;
+                    if (card != null) {
+                        return element.toBuilder()
+                                .setType(element.getType().toBuilder().setComponentType(componentType.toBuilder()
+                                        .setModel(model.toBuilder().setLockupModel(card))))
+                                .build()
+                                .toByteArray();
+                    }
+                } catch (Exception ex) {
+                    Logger.printException(() -> "setFeedCardLayout failure", ex);
+                }
+            }
             return bytes;
         }
 
         try {
             final String elementText = FeedVideoCardsPatch.getElementText(bytes);
-            if (LAYOUT != FeedCardLayout.DEFAULT && FeedVideoCardsPatch.lacksAll(elementText, elementTemplates)) {
+            if (FeedVideoCardsPatch.lacksAll(elementText, elementTemplates)) {
                 // The elements of the layout of the setting give the current version of its template:
                 // the uri and the fields are taken from the element, if it's an element of the template.
                 // After the first element, the elements are checked once in a while, to follow a new version.
@@ -856,29 +897,7 @@ public class FeedCardLayoutPatch {
             ElementModel model = componentType.getModel();
 
             ComponentType converted = null;
-            if (LAYOUT == FeedCardLayout.DEFAULT) {
-                if (isTemplate(uri, CARD_TEMPLATE) && model.hasLockupModel()) {
-                    converted = convertServerCard(componentType, model);
-                    if (converted != null) {
-                        // The lists draw the cards of the newer A/B test from now on.
-                        newServerCardsShown = true;
-                    }
-                } else if (isTemplate(uri, SHELF_HEADER_TEMPLATE) && model.hasShelfHeaderModel()
-                        && !model.getShelfHeaderModel().getContext().getElementsExperiments()
-                        .getLockupExperiments().isEmpty()) {
-                    // The shelf headers of the newer A/B test keep their style, and are found in the lists
-                    // by their label, to move their buttons inside the spacing of the cards, see fitShelfHeaders().
-                    converted = markShelfHeader(componentType, model.getShelfHeaderModel());
-                } else if (isTemplate(uri, SHORTS_VIDEO_CELL_TEMPLATE) && model.hasShortsVideoCellModel()) {
-                    ShortsVideoCellModel cell = model.getShortsVideoCellModel();
-                    converted = markShortsCell(componentType, cell);
-                    if (cell.getGrid().getNoMargins()) {
-                        // The Shorts shelf of the newer A/B test can be above its first card, such as at the top
-                        // of the Home feed, and the lists draw the cards from now on.
-                        newServerCardsShown = true;
-                    }
-                }
-            } else if (CARD_LAYOUT) {
+            if (CARD_LAYOUT) {
                 if (isTemplate(uri, CLASSIC_TEMPLATE) && model.hasVideoWithContextModel()) {
                     VideoWithContextModel classic = model.getVideoWithContextModel();
                     toCard: {
@@ -1512,7 +1531,7 @@ public class FeedCardLayoutPatch {
      */
     public static void onChildAdded(RecyclerView recyclerView, View child) {
         try {
-            if (!listsDrawCards() || child == null) {
+            if (!CARD_LAYOUT || child == null) {
                 return;
             }
 
@@ -1539,7 +1558,7 @@ public class FeedCardLayoutPatch {
      */
     public static int getCardColor(Drawable drawable, int color) {
         try {
-            if (listsDrawCards() && Color.alpha(color) == 255) {
+            if (CARD_LAYOUT && Color.alpha(color) == 255) {
                 boolean inCard = false;
                 View view = getDrawableView(drawable);
                 while (view != null) {
@@ -1559,8 +1578,7 @@ public class FeedCardLayoutPatch {
                     }
                     ViewParent parent = view.getParent();
                     if (parent instanceof RecyclerView recyclerView) {
-                        // The other items of the feed are cards only with the card layout.
-                        if (CARD_LAYOUT && recyclerView.getId() == getFeedId()) {
+                        if (recyclerView.getId() == getFeedId()) {
                             // The background is mounted before the content of the item,
                             // so a bar of chips is found only after the item is mounted.
                             if (view instanceof ViewGroup group && group.getChildCount() == 0) {
@@ -1596,20 +1614,8 @@ public class FeedCardLayoutPatch {
      */
     public static Object getDividerItem(@Nullable Object item) {
         try {
-            if (listsDrawCards() && item instanceof ElementItemInterface element) {
-                byte[] bytes = element.patch_getElementBytes();
-                if (bytes != null) {
-                    Boolean card = cardElements.get(bytes);
-                    if (card == null) {
-                        card = CARD.search.matches(bytes) && isCardLabel(Element.parseFrom(bytes).getType()
-                                .getComponentType().getModel().getLockupModel().getViewModel().getLockupViewModel()
-                                .getRendererContext().getAccessibilityContext().getLabel());
-                        cardElements.put(bytes, card);
-                    }
-                    if (card) {
-                        return ITEM_WITHOUT_DIVIDER;
-                    }
-                }
+            if (CARD_LAYOUT && isCardItem(item)) {
+                return ITEM_WITHOUT_DIVIDER;
             }
         } catch (Exception ex) {
             Logger.printException(() -> "getDividerItem failure", ex);
@@ -1618,16 +1624,37 @@ public class FeedCardLayoutPatch {
     }
 
     /**
+     * @return If the item is a card with the spacing of the cards.
+     */
+    private static boolean isCardItem(@Nullable Object item) throws InvalidProtocolBufferException {
+        if (!(item instanceof ElementItemInterface element)) {
+            return false;
+        }
+        byte[] bytes = element.patch_getElementBytes();
+        if (bytes == null) {
+            return false;
+        }
+        Boolean card = cardElements.get(bytes);
+        if (card == null) {
+            card = CARD.search.matches(bytes) && isCardLabel(Element.parseFrom(bytes).getType()
+                    .getComponentType().getModel().getLockupModel().getViewModel().getLockupViewModel()
+                    .getRendererContext().getAccessibilityContext().getLabel());
+            cardElements.put(bytes, card);
+        }
+        return card;
+    }
+
+    /**
      * Injection point.
      * Called when the layout of a section of a list is made.
      *
      * @param columnCount Columns of the section.
      * @param rowGapDp    Gap between the rows of the section.
-     * @return The gap between the rows, which is removed from the sections of one column when the lists draw cards,
+     * @return The gap between the rows, which is removed from the sections of one column with the card layout,
      *         as the cards have their own spacing.
      */
     public static float getSectionRowGap(int columnCount, float rowGapDp) {
-        return listsDrawCards() && columnCount == 1 ? 0 : rowGapDp;
+        return CARD_LAYOUT && columnCount == 1 ? 0 : rowGapDp;
     }
 
     /**
@@ -1636,7 +1663,7 @@ public class FeedCardLayoutPatch {
      */
     public static void setDividerItemView(View view) {
         try {
-            if (!listsDrawCards()) {
+            if (!CARD_LAYOUT) {
                 return;
             }
 
@@ -1656,7 +1683,7 @@ public class FeedCardLayoutPatch {
      */
     public static void setDividerItem(@Nullable Object item) {
         try {
-            if (!listsDrawCards()) {
+            if (!CARD_LAYOUT) {
                 return;
             }
 
@@ -1731,9 +1758,8 @@ public class FeedCardLayoutPatch {
         if (outline == null && isShortsPivotRow(child)) {
             outline = FEED_ITEM_OUTLINE;
         }
-        // The items of the feed are cards, also the ones that YouTube sends as cards and are not converted,
-        // only with the card layout.
-        if (outline == null && CARD_LAYOUT && child.getParent() instanceof RecyclerView recyclerView
+        // The items of the feed are cards, also the ones that YouTube sends as cards and are not converted.
+        if (outline == null && child.getParent() instanceof RecyclerView recyclerView
                 && recyclerView.getId() == getFeedId() && !isChipBar(child)) {
             outline = (isShelfHeader(child) || isVideoShelfHeader(child)) && !hasNestedList(child)
                     ? SHELF_HEADER_OUTLINE
@@ -1956,7 +1982,7 @@ public class FeedCardLayoutPatch {
 
                         // Updates the clips of the Shorts of the Shorts shelves, without drawing the shelves.
                         shortsCellOutlines.clear();
-                        for (int i = 0, count = CARD_LAYOUT ? current.getChildCount() : 0; i < count; i++) {
+                        for (int i = 0, count = current.getChildCount(); i < count; i++) {
                             View item = current.getChildAt(i);
                             if (item.getHeight() > 0 && isShortsRow(item)) {
                                 View above = findItemAbove(current, item);
@@ -2055,7 +2081,7 @@ public class FeedCardLayoutPatch {
      */
     public static void onListDraw(RecyclerView list, Canvas canvas) {
         try {
-            if (!listsDrawCards() || canvas == null) {
+            if (!CARD_LAYOUT || canvas == null) {
                 return;
             }
 
@@ -2127,11 +2153,10 @@ public class FeedCardLayoutPatch {
                     continue;
                 }
 
-                // First visible row of a Shorts shelf. The default layout changes only the margins of the Shorts
-                // of the newer A/B test, see markShortsCell().
+                // First visible row of a Shorts shelf.
                 if (isShortsRow(item)) {
                     View above = findItemAbove(list, item);
-                    if (CARD_LAYOUT && (above == null || !isShortsRow(above))) {
+                    if (above == null || !isShortsRow(above)) {
                         drawShortsShelfCard(list, above, item, canvas);
                     }
                     continue;
@@ -2962,8 +2987,7 @@ public class FeedCardLayoutPatch {
     /**
      * The cards that YouTube sends to the accounts of a newer A/B test, such as the videos, the playlists,
      * the Shorts and the Premium promotion, have no padding and fill the width with the list.
-     * They get the padding and the labels of the converted cards, whatever their content type,
-     * also with the default layout, which shows them as YouTube sends them otherwise.
+     * They get the padding and the labels of the converted cards, whatever their content type.
      * The cards of an older A/B test already have their padding, and are not changed.
      *
      * @return The converted card, or null if the card is not changed.
@@ -2973,6 +2997,13 @@ public class FeedCardLayoutPatch {
             throws InvalidProtocolBufferException {
         ComponentType converted = null;
         LockupModel card = model.getLockupModel();
+        LockupModel withoutBlurredBackground = withoutBlurredBottomBackground(card);
+        if (withoutBlurredBackground != null) {
+            card = withoutBlurredBackground;
+            converted = componentType.toBuilder()
+                    .setModel(model.toBuilder().setLockupModel(card))
+                    .build();
+        }
         LockupViewModel lockupViewModel = card.getViewModel().getLockupViewModel();
         RendererContext rendererContext = lockupViewModel.getRendererContext();
         String label = rendererContext.getAccessibilityContext().getLabel();
@@ -3035,6 +3066,28 @@ public class FeedCardLayoutPatch {
                     .build();
         }
         return converted;
+    }
+
+    /**
+     * The cards of a newer A/B test have a blurred background at the bottom, which RenderNext draws
+     * as a fade into the card. The app is always rendered with Litho, which draws it as a panel with
+     * rounded corners that show light arcs on the card, so the background is removed.
+     *
+     * @return The card without the blurred background, or null if the card has no blurred background.
+     */
+    @Nullable
+    private static LockupModel withoutBlurredBottomBackground(LockupModel card) {
+        ElementsExperiments experiments = card.getContext().getElementsExperiments();
+        CardLayoutExperiments cardExperiments = experiments.getCardLayoutExperiments();
+        if (!cardExperiments.getEnableBlurredBottomBackground()) {
+            return null;
+        }
+        return card.toBuilder()
+                .setContext(card.getContext().toBuilder()
+                        .setElementsExperiments(experiments.toBuilder()
+                                .setCardLayoutExperiments(cardExperiments.toBuilder()
+                                        .clearEnableBlurredBottomBackground())))
+                .build();
     }
 
     /**
@@ -3204,17 +3257,21 @@ public class FeedCardLayoutPatch {
      * The experiments that the templates of the cards and of the classic layout read are sent by the server
      * for the layout of the account, and some change the layout, such as one that leaves the menu button out
      * of the cards. The converted elements would get the experiments meant for the other layout, so they have
-     * only the experiments of the style of the cards, which the cards turn on and the classic layout turns off.
+     * only the experiment of the style of the cards, which the cards turn on and the classic layout turns off.
      * Every other experiment of the cards is left out, also the ones that the server adds later.
+     * The cards get the style of the cards of a newer A/B test, as the style of an older A/B test has
+     * a background tinted at the bottom, which the cards of the server lose, see withoutBlurredBottomBackground().
      */
     private static ElementContext setCardExperiments(ElementContext context, boolean enabled) {
+        ElementsExperiments.Builder experiments = context.getElementsExperiments().toBuilder()
+                .clearCardLayoutExperiments()
+                .clearLockupExperiments()
+                .clearLockupMetadataExperiments();
+        if (enabled) {
+            experiments.setLockupExperiments(LockupExperiments.newBuilder().setEnableCardStyle(true));
+        }
         return context.toBuilder()
-                .setElementsExperiments(context.getElementsExperiments().toBuilder()
-                        .setCardLayoutExperiments(CardLayoutExperiments.newBuilder()
-                                .setEnableColorSampledBackground(enabled)
-                                .setEnableMetadataBackground(enabled))
-                        .clearLockupExperiments()
-                        .clearLockupMetadataExperiments())
+                .setElementsExperiments(experiments)
                 .build();
     }
 
