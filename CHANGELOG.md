@@ -1,3 +1,13 @@
+## [2.8.0](https://github.com/mohdzafeer786/morphe-patches-new/compare/v2.7.0...v2.8.0) (2026-11-27)
+
+### ✨ New Features
+
+* **YouTube - Swipe controls:** Add opt-in horizontal seeking ([249dcd1](https://github.com/mohdzafeer786/morphe-patches-new/commit/249dcd116b277549b9a903848619874b00fb4b19))
+
+### 🐛 Bug Fixes
+
+* **YouTube - Swipe controls:** Improve fine seeking and seconds feedback ([a55e299](https://github.com/mohdzafeer786/morphe-patches-new/commit/a55e299350ced2117e8d1b5220a10ac1c7e6c05d))
+
 ## [2.7.0](https://github.com/mohdzafeer786/morphe-patches-old/compare/v2.6.0...v2.7.0) (2026-11-26)
 
 ### ✨ New Features
