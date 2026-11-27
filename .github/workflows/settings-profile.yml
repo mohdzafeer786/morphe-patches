@@ -23,7 +23,7 @@ jobs:
         run: |
           git config user.name "builder"
           git config user.email "builder@users.noreply.github.com"
-          printf '%s\n' 'patches/src/main/resources/addresources/values/youtube/strings.xml merge=union' >> .git/info/attributes
+          printf '%s\n' 'patches/src/main/resources/addresources/values/youtube/strings.xml merge=union' 'extensions/youtube/src/main/java/app/morphe/extension/youtube/settings/Settings.java merge=union' >> .git/info/attributes
           git fetch https://github.com/MorpheApp/morphe-patches.git pull/4658/head
           git checkout -b settings-profile-final
           git cherry-pick FETCH_HEAD
