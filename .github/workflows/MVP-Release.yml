@@ -1,0 +1,39 @@
+name: Build Latest Official MVP
+on: workflow_dispatch
+permissions:
+  contents: write
+  packages: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          
+      - name: Fetch Latest Official Code
+        run: |
+          git remote add upstream https://github.com/MorpheApp/morphe-patches.git || true
+          git fetch upstream
+          git checkout -b mvp-update upstream/main || git checkout -b mvp-update upstream/dev
+          
+      - name: Change Version
+        run: |
+          find . -name "gradle.properties" -exec sed -i 's/version=.*/version=3.0.0/g' {} + || true
+          find . -name "build.gradle.kts" -exec sed -i 's/version = ".*"/version = "3.0.0"/g' {} + || true
+          
+      - name: Build Patches
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew build -x test
+        
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v3.0.0-mvp
+          name: Official MVP Patches v3.0.0
+          files: patches/build/libs/*.jar
