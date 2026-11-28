@@ -1,0 +1,35 @@
+name: Build MPP direct
+on: workflow_dispatch
+permissions:
+  contents: write
+  packages: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_ACTOR: ${{ github.actor }}
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build
+        run: |
+          ./gradlew :patches:buildAndroid --no-daemon
+          if ! find . -name "*.mpp" -not -path "*/node_modules/*" | grep -q .; then
+            ./gradlew build -x test --no-daemon
+          fi
+          find . -name "*.mpp" -not -path "*/node_modules/*"
+      - name: Publish as pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="build-$(date +%Y%m%d-%H%M)"
+          FILE=$(find . -name "*.mpp" -not -path "*/node_modules/*" | head -n 1)
+          cp "$FILE" ./patches-custom.mpp
+          gh release create "$TAG" ./patches-custom.mpp --prerelease --title "$TAG" --notes "Direct build of main"
