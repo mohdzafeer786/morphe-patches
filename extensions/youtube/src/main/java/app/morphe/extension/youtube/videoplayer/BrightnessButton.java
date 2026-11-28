@@ -26,6 +26,9 @@ public class BrightnessButton {
     private static boolean dimmed;
     private static float brightnessBeforeDim = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE;
 
+    @Nullable
+    private static LegacyPlayerControlButton legacy;
+
     private static WeakReference<ImageView> overlayButtonRef = new WeakReference<>(null);
     private static WeakReference<Activity> activityRef = new WeakReference<>(null);
 
@@ -47,6 +50,29 @@ public class BrightnessButton {
             ));
         } catch (Exception ex) {
             Logger.printException(() -> "initializeButton failure", ex);
+        }
+    }
+
+    /**
+     * Injection point.
+     */
+    public static void initializeLegacyButton(View controlsView) {
+        try {
+            if (!LegacyPlayerControlsPatch.RESTORE_OLD_PLAYER_BUTTONS) {
+                return;
+            }
+
+            legacy = new LegacyPlayerControlButton(
+                    controlsView,
+                    "morphe_brightness_button",
+                    null,
+                    getIconName(),
+                    Settings.BRIGHTNESS_BUTTON,
+                    BrightnessButton::toggleBrightness,
+                    null
+            );
+        } catch (Exception ex) {
+            Logger.printException(() -> "initializeLegacyButton failure", ex);
         }
     }
 
@@ -116,9 +142,15 @@ public class BrightnessButton {
     private static void updateButtonIcon() {
         Utils.verifyOnMainThread();
 
+        final int icon = PlayerIcons.id(getIconBaseName());
+
         ImageView overlayButton = overlayButtonRef.get();
         if (overlayButton != null) {
-            overlayButton.setImageResource(PlayerIcons.id(getIconBaseName()));
+            overlayButton.setImageResource(icon);
+        }
+
+        if (legacy != null) {
+            legacy.setIcon(icon);
         }
     }
 
