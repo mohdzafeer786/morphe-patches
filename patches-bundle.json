@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-27T10:16:04",
-  "description": "## [2.10.0](https://github.com/mohdzafeer786/morphe-patches-new/compare/v2.9.0...v2.10.0) (2026-11-27)\n\n### ✨ New Features\n\n* **YouTube:** Add 'Dim Shorts overlay' patch ([1f84bdc](https://github.com/mohdzafeer786/morphe-patches-new/commit/1f84bdccf90c9c6a6268ea34308282fc38191336))",
-  "download_url": "https://github.com/mohdzafeer786/morphe-patches-new/releases/download/v2.10.0/patches-2.10.0.mpp",
+  "created_at": "2026-11-28T05:44:41",
+  "description": "## [2.11.0](https://github.com/mohdzafeer786/morphe-patches-new/compare/v2.10.0...v2.11.0) (2026-11-28)\n\n### ✨ New Features\n\n* **YouTube:** Add Brightness button ([b5c455f](https://github.com/mohdzafeer786/morphe-patches-new/commit/b5c455f9387150eaec5a638a1174bc2fe98dca3d))\n* **YouTube:** Add Brightness button ([72a5b86](https://github.com/mohdzafeer786/morphe-patches-new/commit/72a5b86ba9433b8fa5c4aac06b8d4495fbb319d1))",
+  "download_url": "https://github.com/mohdzafeer786/morphe-patches-new/releases/download/v2.11.0/patches-2.11.0.mpp",
   "signature_download_url": "",
-  "version": "2.10.0",
+  "version": "2.11.0",
   "public_key": "g8Ys9leTu2yeixojeR35HrNkK6eOSLpA6nNIizRutqI="
 }

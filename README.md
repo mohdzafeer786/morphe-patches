@@ -35,7 +35,7 @@ All modifications made by Morphe, along with their dates, can be found in the Gi
 ## 🩹 Patches list
 
 <!-- PATCHES_START -->
-> **[v2.10.0](https://github.com/mohdzafeer786/morphe-patches-new/releases/tag/v2.10.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;270 patches total
+> **[v2.11.0](https://github.com/mohdzafeer786/morphe-patches-new/releases/tag/v2.11.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;271 patches total
 <details>
 <summary>📦 YouTube Music&nbsp;&nbsp;•&nbsp;&nbsp;63 patches</summary>
 <br>
@@ -114,7 +114,7 @@ All modifications made by Morphe, along with their dates, can be found in the Gi
 </details>
 
 <details>
-<summary>📦 YouTube&nbsp;&nbsp;•&nbsp;&nbsp;133 patches</summary>
+<summary>📦 YouTube&nbsp;&nbsp;•&nbsp;&nbsp;134 patches</summary>
 <br>
 
 **🎯 Supported versions:**
@@ -131,6 +131,7 @@ All modifications made by Morphe, along with their dates, can be found in the Gi
 | [App refresh rate](#app-refresh-rate) | Adds an option to change the app refresh rate. |  |
 | [Ask flyout menu](#ask-flyout-menu) | Adds a video menu entry that opens Ask for the video and summarizes the video. This patch works with YouTube 21.16.256 and newer. |  |
 | [Autoplay control](#autoplay-control) | Adds a player button and a rule for the next video: playlists and queues go on, a Mix stops after a number of videos, a suggested video never plays. |  |
+| [Brightness button](#brightness-button) | Adds an option to show a player button that dims the screen while watching. |  |
 | [Bypass image region restrictions](#bypass-image-region-restrictions) | Adds an option to use a different host for user avatar and channel images and can fix missing images that are blocked in some countries. |  |
 | [Bypass link redirects](#bypass-link-redirects) | Adds an option to bypass redirects and open the original link directly. |  |
 | [Captions](#captions) | Adds options to disable captions from being automatically enabled, select a preferred and a secondary caption language, add more auto-translate languages, show captions in stable blocks and in picture-in-picture, and copy the transcript. Stable blocks and bilingual captions work with YouTube 21.15 and newer, on Android 10 and newer. |  |
