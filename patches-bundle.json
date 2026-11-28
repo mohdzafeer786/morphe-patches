@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-28T05:44:41",
-  "description": "## [2.11.0](https://github.com/mohdzafeer786/morphe-patches-new/compare/v2.10.0...v2.11.0) (2026-11-28)\n\n### ✨ New Features\n\n* **YouTube:** Add Brightness button ([b5c455f](https://github.com/mohdzafeer786/morphe-patches-new/commit/b5c455f9387150eaec5a638a1174bc2fe98dca3d))\n* **YouTube:** Add Brightness button ([72a5b86](https://github.com/mohdzafeer786/morphe-patches-new/commit/72a5b86ba9433b8fa5c4aac06b8d4495fbb319d1))",
-  "download_url": "https://github.com/mohdzafeer786/morphe-patches-new/releases/download/v2.11.0/patches-2.11.0.mpp",
+  "created_at": "2026-11-28T09:38:50",
+  "description": "## [2.11.1](https://github.com/mohdzafeer786/morphe-patches-new/compare/v2.11.0...v2.11.1) (2026-11-28)\n\n### 🐛 Bug Fixes\n\n* **YouTube:** Add brightness button icon styles [skip ci] ([080bf2d](https://github.com/mohdzafeer786/morphe-patches-new/commit/080bf2d0d883450cbc06d0e04d18069531dcecdc))",
+  "download_url": "https://github.com/mohdzafeer786/morphe-patches-new/releases/download/v2.11.1/patches-2.11.1.mpp",
   "signature_download_url": "",
-  "version": "2.11.0",
+  "version": "2.11.1",
   "public_key": "g8Ys9leTu2yeixojeR35HrNkK6eOSLpA6nNIizRutqI="
 }

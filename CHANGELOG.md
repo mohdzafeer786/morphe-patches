@@ -1,3 +1,9 @@
+## [2.11.1](https://github.com/mohdzafeer786/morphe-patches-new/compare/v2.11.0...v2.11.1) (2026-11-28)
+
+### 🐛 Bug Fixes
+
+* **YouTube:** Add brightness button icon styles [skip ci] ([080bf2d](https://github.com/mohdzafeer786/morphe-patches-new/commit/080bf2d0d883450cbc06d0e04d18069531dcecdc))
+
 ## [2.11.0](https://github.com/mohdzafeer786/morphe-patches-new/compare/v2.10.0...v2.11.0) (2026-11-28)
 
 ### ✨ New Features
