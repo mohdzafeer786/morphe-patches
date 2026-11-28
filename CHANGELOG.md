@@ -1,3 +1,9 @@
+## [2.14.0](https://github.com/mohdzafeer786/morphe-patches-new/compare/v2.13.0...v2.14.0) (2026-11-28)
+
+### ✨ New Features
+
+* **YouTube:** Add brightness button levels ([2c98cd9](https://github.com/mohdzafeer786/morphe-patches-new/commit/2c98cd92212c05bda81cc26aef8faaf8947a276b))
+
 ## [2.13.0](https://github.com/mohdzafeer786/morphe-patches-new/compare/v2.12.0...v2.13.0) (2026-11-28)
 
 ### ✨ New Features

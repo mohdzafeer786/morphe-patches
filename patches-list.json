@@ -1,6 +1,6 @@
 {
   "NOTE": "Do NOT manually edit this file. This file is automatically updated when semantic release (release.yml) runs. Manually editing this file can break your releases and break third party tools that use this file.",
-  "version": "2.13.0",
+  "version": "2.14.0",
   "patches": [
     {
       "name": "A-B loop",
@@ -1130,7 +1130,7 @@
     },
     {
       "name": "Brightness button",
-      "description": "Adds an option to show a player button that dims the screen while watching.",
+      "description": "Adds an option to show a player button that cycles the screen brightness while watching.",
       "default": true,
       "category": null,
       "compatiblePackages": [

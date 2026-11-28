@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-28T15:10:47",
-  "description": "## [2.13.0](https://github.com/mohdzafeer786/morphe-patches-new/compare/v2.12.0...v2.13.0) (2026-11-28)\n\n### ✨ New Features\n\n* **YouTube:** Add brightness button for old player buttons ([b612652](https://github.com/mohdzafeer786/morphe-patches-new/commit/b61265249d86e542211eeefa98ff49973bf3de10))",
-  "download_url": "https://github.com/mohdzafeer786/morphe-patches-new/releases/download/v2.13.0/patches-2.13.0.mpp",
+  "created_at": "2026-11-28T15:24:27",
+  "description": "## [2.14.0](https://github.com/mohdzafeer786/morphe-patches-new/compare/v2.13.0...v2.14.0) (2026-11-28)\n\n### ✨ New Features\n\n* **YouTube:** Add brightness button levels ([2c98cd9](https://github.com/mohdzafeer786/morphe-patches-new/commit/2c98cd92212c05bda81cc26aef8faaf8947a276b))",
+  "download_url": "https://github.com/mohdzafeer786/morphe-patches-new/releases/download/v2.14.0/patches-2.14.0.mpp",
   "signature_download_url": "",
-  "version": "2.13.0",
+  "version": "2.14.0",
   "public_key": "g8Ys9leTu2yeixojeR35HrNkK6eOSLpA6nNIizRutqI="
 }
