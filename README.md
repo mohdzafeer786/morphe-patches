@@ -35,7 +35,7 @@ All modifications made by Morphe, along with their dates, can be found in the Gi
 ## 🩹 Patches list
 
 <!-- PATCHES_START -->
-> **[v2.11.0-dev.2](https://github.com/mohdzafeer786/morphe-patches-new/releases/tag/v2.11.0-dev.2)**&nbsp;&nbsp;•&nbsp;&nbsp;`dev`&nbsp;&nbsp;•&nbsp;&nbsp;273 patches total
+> **[v2.11.0-dev.3](https://github.com/mohdzafeer786/morphe-patches-new/releases/tag/v2.11.0-dev.3)**&nbsp;&nbsp;•&nbsp;&nbsp;`dev`&nbsp;&nbsp;•&nbsp;&nbsp;273 patches total
 <details>
 <summary>📦 YouTube Music&nbsp;&nbsp;•&nbsp;&nbsp;63 patches</summary>
 <br>

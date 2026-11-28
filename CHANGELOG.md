@@ -1,3 +1,9 @@
+## [2.11.0-dev.3](https://github.com/mohdzafeer786/morphe-patches-new/compare/v2.11.0-dev.2...v2.11.0-dev.3) (2026-11-28)
+
+### 🐛 Bug Fixes
+
+* **Spoof video streams:** Settings screen stays in memory after it is closed ([#5518](https://github.com/mohdzafeer786/morphe-patches-new/issues/5518)) ([5e21703](https://github.com/mohdzafeer786/morphe-patches-new/commit/5e2170396bddb75479cc31ff856b91015772cda8))
+
 ## [2.11.0-dev.2](https://github.com/mohdzafeer786/morphe-patches-new/compare/v2.11.0-dev.1...v2.11.0-dev.2) (2026-11-28)
 
 ### ✨ New Features
