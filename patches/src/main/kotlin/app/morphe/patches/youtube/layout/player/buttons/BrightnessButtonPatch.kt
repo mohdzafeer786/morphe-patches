@@ -6,6 +6,8 @@ import app.morphe.patches.youtube.layout.buttons.overlay.addPlayerOverlayPrefere
 import app.morphe.patches.youtube.layout.buttons.overlay.playerOverlayButtonsSettingsPatch
 import app.morphe.patches.youtube.layout.player.icons.copyPlayerButtonIcons
 import app.morphe.patches.youtube.misc.extension.sharedExtensionPatch
+import app.morphe.patches.youtube.misc.playercontrols.addLegacyBottomControl
+import app.morphe.patches.youtube.misc.playercontrols.initializeLegacyBottomControl
 import app.morphe.patches.youtube.misc.playercontrols.legacyPlayerControlsPatch
 import app.morphe.patches.youtube.misc.settings.settingsPatch
 import app.morphe.patches.youtube.shared.Constants.COMPATIBILITY_YOUTUBE
@@ -23,6 +25,8 @@ private val brightnessButtonResourcePatch = patch {
 
     execute {
         copyPlayerButtonIcons("brightnessbutton", "morphe_brightness_button_off", "morphe_brightness_button_on")
+
+        addLegacyBottomControl("brightnessbutton")
     }
 }
 
@@ -48,6 +52,7 @@ val brightnessButtonPatch = patch(
         )
 
         addPlayerBottomButton(EXTENSION_BUTTON)
+        initializeLegacyBottomControl(EXTENSION_BUTTON)
 
         hookVideoStarted("$EXTENSION_BUTTON->resetBrightnessButton()V")
     }
