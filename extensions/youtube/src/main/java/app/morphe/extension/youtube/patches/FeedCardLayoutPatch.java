@@ -172,7 +172,12 @@ public class FeedCardLayoutPatch {
         DEFAULT,
         CLASSIC,
         CARDS,
-        CARDS_WITH_ACTION_BUTTONS
+        CARDS_WITH_ACTION_BUTTONS,
+        /**
+         * Cards with a background that fades from the colors of the avatar of the channel.
+         */
+        CARDS_WITH_AVATAR_GLOW,
+        CARDS_WITH_ACTION_BUTTONS_AND_AVATAR_GLOW
     }
 
     /**
@@ -185,8 +190,13 @@ public class FeedCardLayoutPatch {
 
     private static final FeedCardLayout LAYOUT = Settings.FEED_CARD_LAYOUT.get();
     private static final boolean CARD_LAYOUT = LAYOUT == FeedCardLayout.CARDS
-            || LAYOUT == FeedCardLayout.CARDS_WITH_ACTION_BUTTONS;
-    private static final boolean ACTION_BUTTONS = LAYOUT == FeedCardLayout.CARDS_WITH_ACTION_BUTTONS;
+            || LAYOUT == FeedCardLayout.CARDS_WITH_ACTION_BUTTONS
+            || LAYOUT == FeedCardLayout.CARDS_WITH_AVATAR_GLOW
+            || LAYOUT == FeedCardLayout.CARDS_WITH_ACTION_BUTTONS_AND_AVATAR_GLOW;
+    private static final boolean ACTION_BUTTONS = LAYOUT == FeedCardLayout.CARDS_WITH_ACTION_BUTTONS
+            || LAYOUT == FeedCardLayout.CARDS_WITH_ACTION_BUTTONS_AND_AVATAR_GLOW;
+    private static final boolean AVATAR_GLOW = LAYOUT == FeedCardLayout.CARDS_WITH_AVATAR_GLOW
+            || LAYOUT == FeedCardLayout.CARDS_WITH_ACTION_BUTTONS_AND_AVATAR_GLOW;
 
     /**
      * If YouTube has sent the cards of a newer A/B test with the default layout, which shows them as they are sent.
@@ -808,7 +818,7 @@ public class FeedCardLayoutPatch {
         if (LAYOUT == FeedCardLayout.DEFAULT) {
             // The default layout shows the elements as YouTube sends them, and only checks if YouTube sends
             // the cards of a newer A/B test, see feedShowsCards(). The cards only lose the blurred background
-            // at the bottom, see withoutBlurredBottomBackground().
+            // at the bottom.
             if ((!newServerCardsShown && defaultLayoutSearch.matches(bytes))
                     || blurredBottomBackgroundSearch.matches(bytes)) {
                 try {
@@ -827,11 +837,21 @@ public class FeedCardLayoutPatch {
                         newServerCardsShown = true;
                     }
 
-                    LockupModel card = isCard ? withoutBlurredBottomBackground(model.getLockupModel()) : null;
-                    if (card != null) {
+                    // The cards of a newer A/B test have a blurred background at the bottom, which RenderNext draws
+                    // as a fade into the card. The app is always rendered with Litho, which draws it as a panel with
+                    // rounded corners that show light arcs on the card, so the background is removed, and the rest
+                    // of the style of the server is kept, such as the rounded corners.
+                    LockupModel card = model.getLockupModel();
+                    ElementsExperiments experiments = card.getContext().getElementsExperiments();
+                    CardLayoutExperiments cardExperiments = experiments.getCardLayoutExperiments();
+                    if (isCard && cardExperiments.getEnableBlurredBottomBackground()) {
                         return element.toBuilder()
                                 .setType(element.getType().toBuilder().setComponentType(componentType.toBuilder()
-                                        .setModel(model.toBuilder().setLockupModel(card))))
+                                        .setModel(model.toBuilder().setLockupModel(card.toBuilder()
+                                                .setContext(card.getContext().toBuilder()
+                                                        .setElementsExperiments(experiments.toBuilder()
+                                                                .setCardLayoutExperiments(cardExperiments.toBuilder()
+                                                                        .clearEnableBlurredBottomBackground())))))))
                                 .build()
                                 .toByteArray();
                     }
@@ -2988,7 +3008,8 @@ public class FeedCardLayoutPatch {
      * The cards that YouTube sends to the accounts of a newer A/B test, such as the videos, the playlists,
      * the Shorts and the Premium promotion, have no padding and fill the width with the list.
      * They get the padding and the labels of the converted cards, whatever their content type.
-     * The cards of an older A/B test already have their padding, and are not changed.
+     * The cards of an older A/B test already have their padding. Every card gets the style
+     * of the converted cards, see withCardStyle().
      *
      * @return The converted card, or null if the card is not changed.
      */
@@ -2997,12 +3018,12 @@ public class FeedCardLayoutPatch {
             throws InvalidProtocolBufferException {
         ComponentType converted = null;
         LockupModel card = model.getLockupModel();
-        LockupModel withoutBlurredBackground = withoutBlurredBottomBackground(card);
-        if (withoutBlurredBackground != null) {
-            card = withoutBlurredBackground;
-            converted = componentType.toBuilder()
-                    .setModel(model.toBuilder().setLockupModel(card))
-                    .build();
+        ComponentType withStyle = withCardStyle(componentType, card);
+        if (withStyle != null) {
+            componentType = withStyle;
+            model = withStyle.getModel();
+            card = model.getLockupModel();
+            converted = withStyle;
         }
         LockupViewModel lockupViewModel = card.getViewModel().getLockupViewModel();
         RendererContext rendererContext = lockupViewModel.getRendererContext();
@@ -3021,7 +3042,7 @@ public class FeedCardLayoutPatch {
         // The card layout without buttons removes the buttons of the videos and the Shorts that YouTube
         // sends as cards with buttons. The other cards, such as the playlists and the promotions,
         // keep their buttons, as their menu may not have their actions.
-        if (LAYOUT == FeedCardLayout.CARDS && !isCardLabel(label) && metadata.getActionButtonsCount() > 0
+        if (CARD_LAYOUT && !ACTION_BUTTONS && !isCardLabel(label) && metadata.getActionButtonsCount() > 0
                 && (contentType == LOCKUP_CONTENT_TYPE_VIDEO || contentType == LOCKUP_CONTENT_TYPE_SHORT)) {
             boolean hasSaveButton = false;
             for (ActionButton button : metadata.getActionButtonsList()) {
@@ -3069,24 +3090,41 @@ public class FeedCardLayoutPatch {
     }
 
     /**
-     * The cards of a newer A/B test have a blurred background at the bottom, which RenderNext draws
-     * as a fade into the card. The app is always rendered with Litho, which draws it as a panel with
-     * rounded corners that show light arcs on the card, so the background is removed.
+     * The style of the cards that YouTube sends changes with the A/B tests of the server, which add experiments
+     * to the cards and subscriptions to the elements. Some styles are not drawn as intended by Litho, such as
+     * the blurred background at the bottom of the cards of a newer A/B test, which is drawn as a panel with
+     * rounded corners that show light arcs on the card. With the card layouts, the cards get the style of the
+     * converted cards instead, such as the search results converted to cards: only the experiments of
+     * setCardExperiments() and the theme and capabilities subscriptions, so a new style of the server does not
+     * change the cards. The default layout keeps the style of the server, without the blurred background.
+     * The elements without the experiments of the cards, which YouTube does not show as cards, are not changed.
      *
-     * @return The card without the blurred background, or null if the card has no blurred background.
+     * @return The card with the style of the converted cards, or null if the card is not changed.
      */
     @Nullable
-    private static LockupModel withoutBlurredBottomBackground(LockupModel card) {
-        ElementsExperiments experiments = card.getContext().getElementsExperiments();
-        CardLayoutExperiments cardExperiments = experiments.getCardLayoutExperiments();
-        if (!cardExperiments.getEnableBlurredBottomBackground()) {
+    private static ComponentType withCardStyle(ComponentType componentType, LockupModel card) {
+        ElementContext context = card.getContext();
+        ElementsExperiments experiments = context.getElementsExperiments();
+        if (!experiments.hasCardLayoutExperiments() && !experiments.hasLockupExperiments()) {
             return null;
         }
-        return card.toBuilder()
-                .setContext(card.getContext().toBuilder()
-                        .setElementsExperiments(experiments.toBuilder()
-                                .setCardLayoutExperiments(cardExperiments.toBuilder()
-                                        .clearEnableBlurredBottomBackground())))
+
+        ElementContext cardContext = setCardExperiments(context, true);
+        SubscriptionConfig config = componentType.getSubscriptionConfig();
+        SubscriptionConfig.Builder cardConfig = SubscriptionConfig.newBuilder();
+        if (config.hasThemeSubscriptionConfig()) {
+            cardConfig.setThemeSubscriptionConfig(config.getThemeSubscriptionConfig());
+        }
+        if (config.hasCapabilitiesSubscriptionConfig()) {
+            cardConfig.setCapabilitiesSubscriptionConfig(config.getCapabilitiesSubscriptionConfig());
+        }
+        if (cardContext.equals(context) && cardConfig.build().equals(config)) {
+            return null;
+        }
+        return componentType.toBuilder()
+                .setModel(componentType.getModel().toBuilder()
+                        .setLockupModel(card.toBuilder().setContext(cardContext)))
+                .setSubscriptionConfig(cardConfig)
                 .build();
     }
 
@@ -3257,10 +3295,10 @@ public class FeedCardLayoutPatch {
      * The experiments that the templates of the cards and of the classic layout read are sent by the server
      * for the layout of the account, and some change the layout, such as one that leaves the menu button out
      * of the cards. The converted elements would get the experiments meant for the other layout, so they have
-     * only the experiment of the style of the cards, which the cards turn on and the classic layout turns off.
+     * only the experiments of the style of the cards, which the cards turn on and the classic layout turns off.
      * Every other experiment of the cards is left out, also the ones that the server adds later.
-     * The cards get the style of the cards of a newer A/B test, as the style of an older A/B test has
-     * a background tinted at the bottom, which the cards of the server lose, see withoutBlurredBottomBackground().
+     * The cards have a gray background, or with the layouts with the avatar glow a background that fades
+     * from the colors of the avatar of the channel into the card.
      */
     private static ElementContext setCardExperiments(ElementContext context, boolean enabled) {
         ElementsExperiments.Builder experiments = context.getElementsExperiments().toBuilder()
@@ -3268,7 +3306,13 @@ public class FeedCardLayoutPatch {
                 .clearLockupExperiments()
                 .clearLockupMetadataExperiments();
         if (enabled) {
-            experiments.setLockupExperiments(LockupExperiments.newBuilder().setEnableCardStyle(true));
+            if (AVATAR_GLOW) {
+                experiments.setCardLayoutExperiments(CardLayoutExperiments.newBuilder()
+                        .setEnableColorSampledBackground(true)
+                        .setEnableMetadataBackground(true));
+            } else {
+                experiments.setLockupExperiments(LockupExperiments.newBuilder().setEnableCardStyle(true));
+            }
         }
         return context.toBuilder()
                 .setElementsExperiments(experiments)
