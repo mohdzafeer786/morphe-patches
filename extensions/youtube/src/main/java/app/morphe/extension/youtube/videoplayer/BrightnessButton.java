@@ -20,11 +20,25 @@ import app.morphe.extension.youtube.settings.Settings;
 @SuppressWarnings("unused")
 public class BrightnessButton {
 
-    /** Window brightness while dimmed, from 0.0 to 1.0. */
-    private static final float DIMMED_BRIGHTNESS = 0.2f;
+    /**
+     * Window brightness set by each tap: 25%, 50%, 75%, 100%, and the lowest level.
+     * The lowest level is 1% and not exactly 0, since some devices turn the screen off at 0.
+     */
+    private static final float[] LEVELS = {0.25f, 0.50f, 0.75f, 1.0f, 0.01f};
 
-    private static boolean dimmed;
-    private static float brightnessBeforeDim = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE;
+    private static final String[] LEVEL_ICONS = {
+            "morphe_brightness_button_25",
+            "morphe_brightness_button_50",
+            "morphe_brightness_button_75",
+            "morphe_brightness_button_100",
+            "morphe_brightness_button_0"
+    };
+
+    private static final String SYSTEM_ICON = "morphe_brightness_button_off";
+
+    /** Index of the current level, or -1 while the system brightness is used. */
+    private static int level = -1;
+    private static float brightnessBeforeChange = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE;
 
     @Nullable
     private static LegacyPlayerControlButton legacy;
@@ -45,8 +59,8 @@ public class BrightnessButton {
             overlayButtonRef = new WeakReference<>(PlayerOverlayButton.addButton(
                     controlsView,
                     getIconName(),
-                    BrightnessButton::toggleBrightness,
-                    null
+                    BrightnessButton::onTap,
+                    BrightnessButton::onLongPress
             ));
         } catch (Exception ex) {
             Logger.printException(() -> "initializeButton failure", ex);
@@ -68,8 +82,8 @@ public class BrightnessButton {
                     null,
                     getIconName(),
                     Settings.BRIGHTNESS_BUTTON,
-                    BrightnessButton::toggleBrightness,
-                    null
+                    BrightnessButton::onTap,
+                    BrightnessButton::onLongPress
             );
         } catch (Exception ex) {
             Logger.printException(() -> "initializeLegacyButton failure", ex);
@@ -79,18 +93,14 @@ public class BrightnessButton {
     /**
      * Injection point.
      * <p>
-     * The dimmed brightness is per video, so it is restored when a new video starts.
+     * The brightness is per video, so the system brightness is restored when a new video starts.
      */
     public static void resetBrightnessButton() {
-        if (!dimmed) return;
+        if (level < 0) return;
 
         Utils.runOnMainThread(() -> {
             try {
-                Activity activity = activityRef.get();
-                if (activity != null) {
-                    setWindowBrightness(activity, brightnessBeforeDim);
-                }
-                dimmed = false;
+                restoreSystemBrightness(activityRef.get());
                 updateButtonIcon();
             } catch (Exception ex) {
                 Logger.printException(() -> "resetBrightnessButton failure", ex);
@@ -98,7 +108,7 @@ public class BrightnessButton {
         });
     }
 
-    private static void toggleBrightness(View view) {
+    private static void onTap(View view) {
         try {
             Activity activity = findActivity(view.getContext());
             if (activity == null) {
@@ -107,18 +117,33 @@ public class BrightnessButton {
             }
             activityRef = new WeakReference<>(activity);
 
-            if (dimmed) {
-                setWindowBrightness(activity, brightnessBeforeDim);
-                dimmed = false;
-            } else {
-                brightnessBeforeDim = activity.getWindow().getAttributes().screenBrightness;
-                setWindowBrightness(activity, DIMMED_BRIGHTNESS);
-                dimmed = true;
+            if (level < 0) {
+                brightnessBeforeChange = activity.getWindow().getAttributes().screenBrightness;
             }
+
+            level = (level + 1) % LEVELS.length;
+            setWindowBrightness(activity, LEVELS[level]);
             updateButtonIcon();
         } catch (Exception ex) {
-            Logger.printException(() -> "toggleBrightness failure", ex);
+            Logger.printException(() -> "onTap failure", ex);
         }
+    }
+
+    private static boolean onLongPress(View view) {
+        try {
+            restoreSystemBrightness(findActivity(view.getContext()));
+            updateButtonIcon();
+        } catch (Exception ex) {
+            Logger.printException(() -> "onLongPress failure", ex);
+        }
+        return true;
+    }
+
+    private static void restoreSystemBrightness(@Nullable Activity activity) {
+        if (activity != null && level >= 0) {
+            setWindowBrightness(activity, brightnessBeforeChange);
+        }
+        level = -1;
     }
 
     private static void setWindowBrightness(Activity activity, float brightness) {
@@ -159,8 +184,6 @@ public class BrightnessButton {
     }
 
     private static String getIconBaseName() {
-        return dimmed
-                ? "morphe_brightness_button_on"
-                : "morphe_brightness_button_off";
+        return level < 0 ? SYSTEM_ICON : LEVEL_ICONS[level];
     }
 }

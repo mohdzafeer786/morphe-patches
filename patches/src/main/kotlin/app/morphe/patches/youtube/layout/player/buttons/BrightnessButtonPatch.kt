@@ -24,7 +24,9 @@ private val brightnessButtonResourcePatch = patch {
     )
 
     execute {
-        copyPlayerButtonIcons("brightnessbutton", "morphe_brightness_button_off", "morphe_brightness_button_on")
+        copyPlayerButtonIcons("brightnessbutton", "morphe_brightness_button_off", "morphe_brightness_button_0")
+        copyPlayerButtonIcons("brightnessbutton", "morphe_brightness_button_25", "morphe_brightness_button_50")
+        copyPlayerButtonIcons("brightnessbutton", "morphe_brightness_button_75", "morphe_brightness_button_100")
 
         addLegacyBottomControl("brightnessbutton")
     }
@@ -32,7 +34,7 @@ private val brightnessButtonResourcePatch = patch {
 
 val brightnessButtonPatch = patch(
     name = "Brightness button",
-    description = "Adds an option to show a player button that dims the screen while watching.",
+    description = "Adds an option to show a player button that cycles the screen brightness while watching.",
 ) {
     dependsOn(
         sharedExtensionPatch,
