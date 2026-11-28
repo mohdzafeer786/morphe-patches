@@ -1,3 +1,9 @@
+## [2.13.0](https://github.com/mohdzafeer786/morphe-patches-new/compare/v2.12.0...v2.13.0) (2026-11-28)
+
+### ✨ New Features
+
+* **YouTube:** Add brightness button for old player buttons ([b612652](https://github.com/mohdzafeer786/morphe-patches-new/commit/b61265249d86e542211eeefa98ff49973bf3de10))
+
 ## [2.12.0](https://github.com/mohdzafeer786/morphe-patches-new/compare/v2.11.2...v2.12.0) (2026-11-28)
 
 ### ✨ New Features
